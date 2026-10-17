@@ -1,0 +1,4095 @@
+<!DOCTYPE html>
+{% raw %}
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Helper</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Apache ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+        [v-cloak] {
+            display: none !important;
+        }
+
+        :root {
+            --bg-color: #0b0d19;
+            --panel-bg: rgba(19, 22, 37, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+
+            --primary: #06b6d4;
+            --primary-glow: rgba(6, 182, 212, 0.3);
+
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.25);
+
+            --danger: #f43f5e;
+            --danger-glow: rgba(244, 63, 94, 0.25);
+
+            --neutral: #6b7280;
+            --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.04) 0%, transparent 40%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+
+
+        /* Search Section */
+        .search-box-container {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            outline: none;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0 32px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--primary-glow);
+            filter: brightness(1.1);
+        }
+
+        .search-btn:active {
+            transform: translateY(0);
+        }
+
+        /* History tags */
+        .history-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .history-title {
+            margin-right: 4px;
+        }
+
+        .history-tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 100px;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-tag:hover {
+            background: rgba(6, 182, 212, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .history-tag-text {
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .history-tag-text:hover {
+            color: var(--primary);
+        }
+
+        .history-delete-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-left: 2px;
+        }
+
+        .history-delete-btn:hover {
+            background: rgba(244, 63, 94, 0.2);
+            color: var(--danger);
+        }
+
+        /* Dashboard & Data styling */
+        .dashboard {
+            display: none;
+            flex-direction: column;
+            gap: 24px;
+            animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Info Summary Row */
+        .summary-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .summary-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .target-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .target-time {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .price-group {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .current-price {
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .price-change {
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        .price-change.up {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .price-change.down {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        body.show-colors .price-change.up {
+            color: var(--danger);
+            background: rgba(244, 63, 94, 0.1);
+        }
+
+        body.show-colors .price-change.down {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .price-change.flat {
+            color: var(--neutral);
+            background: rgba(107, 114, 128, 0.1);
+        }
+
+        /* Grid Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--primary);
+            padding-left: 10px;
+            margin-bottom: 6px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px 24px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .info-value {
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .indicator-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .indicator-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .indicator-label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .indicator-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .indicator-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .indicator-val-group {
+            text-align: right;
+        }
+
+        .indicator-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .indicator-badge {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        .badge-up {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .badge-down {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        body.show-colors .badge-up {
+            color: var(--danger);
+            background: rgba(244, 63, 94, 0.1);
+        }
+
+        body.show-colors .badge-down {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .badge-rsi-overbought,
+        .badge-rsi-oversold,
+        .badge-rsi-neutral {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        body.show-colors .badge-rsi-overbought {
+            color: var(--danger);
+            background: rgba(244, 63, 94, 0.1);
+        }
+
+        body.show-colors .badge-rsi-oversold {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        /* History Table Card */
+        .table-card {
+            grid-column: 1 / -1;
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .price-cell {
+            font-weight: 600;
+        }
+
+        body.show-colors .price-cell.price-up {
+            color: var(--danger);
+        }
+
+        body.show-colors .price-cell.price-down {
+            color: var(--success);
+        }
+
+        /* Prompt Panel */
+        .prompt-card {
+            grid-column: 1 / -1;
+            position: relative;
+        }
+
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px var(--success-glow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--success-glow);
+            filter: brightness(1.1);
+        }
+
+        .copy-btn.copied {
+            background: var(--neutral);
+            box-shadow: none;
+        }
+
+        .prompt-textarea {
+            width: 100%;
+            height: 380px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            color: #d1d5db;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            overflow-y: auto;
+        }
+
+        .prompt-textarea:focus {
+            border-color: rgba(6, 182, 212, 0.5);
+        }
+
+        .prompt-tab-group {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            gap: 2px;
+        }
+
+        .prompt-tab {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .prompt-tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.4);
+        }
+
+        .prompt-tab:hover:not(.active) {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Strategy row */
+        .strategy-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            align-items: flex-end;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .strategy-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .strategy-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .strategy-select,
+        .strategy-input {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .strategy-select:focus,
+        .strategy-input:focus {
+            border-color: var(--primary);
+        }
+
+        .strategy-select option {
+            background: #131625;
+        }
+
+        .strategy-input {
+            width: 96px;
+        }
+
+        .settings-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px 20px;
+            width: 100%;
+        }
+
+        .settings-row label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .settings-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Watchlist */
+        .history-tag.pinned {
+            border-color: rgba(6, 182, 212, 0.5);
+            background: rgba(6, 182, 212, 0.08);
+        }
+
+        .history-tag.selectable {
+            cursor: pointer;
+        }
+
+        .history-tag.selected {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.12);
+        }
+
+        .history-tag.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .history-pin-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .history-pin-btn:hover,
+        .history-pin-btn.active {
+            color: var(--primary);
+        }
+
+        .history-actions {
+            display: inline-flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .mini-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mini-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .mini-btn.primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: transparent;
+            color: white;
+            font-weight: 600;
+        }
+
+        .mini-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Main copy button */
+        .main-copy-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 14px 26px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 6px 20px var(--success-glow);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .main-copy-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        .main-copy-btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .main-copy-btn.copied {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+
+        .summary-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .prompt-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Strategy scan lights */
+        .scan-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .scan-dot.fit {
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success-glow);
+        }
+
+        .scan-dot.near {
+            background: #f59e0b;
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+        }
+
+        .scan-dot.no {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .scan-dot.na {
+            background: transparent;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+        }
+
+        .history-tag-price {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .history-tag-price.up {
+            color: var(--danger);
+        }
+
+        .history-tag-price.down {
+            color: var(--success);
+        }
+
+        .scan-legend {
+            display: inline-flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .scan-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Rank card */
+        .rank-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .rank-controls label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .rank-table-wrap {
+            overflow-x: auto;
+        }
+
+        .rank-table td,
+        .rank-table th {
+            padding: 9px 12px;
+            white-space: nowrap;
+        }
+
+        .rank-table tbody tr {
+            cursor: pointer;
+        }
+
+        .rank-table tbody tr:hover td {
+            background: rgba(6, 182, 212, 0.06);
+        }
+
+        .rank-num {
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+        }
+
+        .rank-star {
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 0 6px;
+        }
+
+        .rank-star:hover,
+        .rank-star.active {
+            color: var(--primary);
+        }
+
+        .sector-table tbody tr:hover td {
+            background: transparent;
+        }
+
+        .leader-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            max-width: 320px;
+        }
+
+        .leader-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+
+        .leader-tag:hover {
+            border-color: var(--primary);
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .leader-tag .rank-star {
+            padding: 0 0 0 2px;
+            font-size: 0.8rem;
+        }
+
+        /* Grouped stock rank (industry / concept) */
+        .group-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .group-block {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+        }
+
+        .group-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 14px;
+            padding: 10px 14px;
+        }
+
+        .group-head .group-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .group-head .group-rank-no {
+            color: var(--text-secondary);
+            min-width: 1.6em;
+        }
+
+        .group-head .group-stat {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .group-head .group-change {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .group-block .rank-table-wrap {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .group-block .rank-table td,
+        .group-block .rank-table th {
+            padding: 7px 12px;
+            font-size: 0.86rem;
+        }
+
+        /* Decision log */
+        .log-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            animation: slideUp 0.25s ease;
+        }
+
+        .log-form .strategy-input {
+            width: 96px;
+        }
+
+        .log-form .strategy-input.wide {
+            width: 240px;
+            flex: 1 1 200px;
+        }
+
+        .log-table td,
+        .log-table th {
+            padding: 8px 10px;
+            font-size: 0.88rem;
+        }
+
+        .log-note {
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .review-btn {
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.78rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .review-btn.hit {
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .review-btn.miss {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .log-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .log-badge {
+            font-size: 0.72rem;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--primary);
+        }
+
+        .advanced-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .advanced-section .sub-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Loading & Error States */
+        .loader-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px 0;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-panel {
+            display: none;
+            background: rgba(244, 63, 94, 0.08);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            color: #fca5a5;
+            border-radius: 16px;
+            padding: 20px;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+            animation: slideUp 0.3s ease;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            padding: 40px 0 20px 0;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="app" v-cloak>
+        <!-- Search Box -->
+        <div class="search-box-container">
+            <div class="search-input-group">
+                <input type="text" class="search-input" v-model="stockCode" @keydown.enter="performSearch(stockCode)"
+                    placeholder="請輸入代碼，例如 2330 或 AAPL" autofocus>
+                <button class="search-btn" @click="performSearch(stockCode)" :disabled="loading"
+                    :style="{ opacity: loading ? 0.6 : 1 }">
+                    <span>開始查詢</span>
+                </button>
+            </div>
+            <!-- Watchlist / recent searches -->
+            <div class="history-container" v-show="sortedHistory.length > 0">
+                <span class="history-title">{{ compareMode ? '勾選要比較的股票（至少 2 支）：' : (scanMode ? '勾選要掃描的股票：' : '自選股：') }}</span>
+                <div style="display: inline-flex; flex-wrap: wrap; gap: 8px;">
+                    <div v-for="item in sortedHistory" :key="item.code" class="history-tag"
+                        :class="{ pinned: item.pinned && !compareMode && !scanMode, selectable: compareMode || scanMode, selected: (compareMode && isCompareSelected(item.code)) || (scanMode && isScanSelected(item.code)) }"
+                        @click="compareMode ? toggleCompareSelect(item.code) : (scanMode && toggleScanSelect(item.code))">
+                        <template v-if="compareMode || scanMode">
+                            <span class="history-tag-text">{{ item.name || item.code }}</span>
+                        </template>
+                        <template v-else>
+                            <span class="history-pin-btn" :class="{ active: item.pinned }"
+                                :title="item.pinned ? '取消釘選' : '釘選到自選股'"
+                                @click.stop="togglePin(item.code)">{{ item.pinned ? '★' : '☆' }}</span>
+                            <span v-if="scanResults[item.code] && scanResults[item.code].status !== 'na'"
+                                class="scan-dot" :class="scanResults[item.code].status"
+                                :title="scanTooltip(item.code)"></span>
+                            <span v-else-if="scanResults[item.code]" class="scan-dot na"
+                                :title="scanTooltip(item.code)"></span>
+                            <span class="history-tag-text" :title="scanTooltip(item.code)"
+                                @click="searchFromHistory(item.code)">{{ item.name || item.code }}</span>
+                            <span v-if="scanResults[item.code]" class="history-tag-price"
+                                :class="priceDirClass(scanResults[item.code].price_change)">{{ scanResults[item.code].current_price }}
+                                {{ shortChange(scanResults[item.code].price_change) }}</span>
+                            <span v-if="logCountFor(item.code)" class="log-badge"
+                                :title="'決策日誌有 ' + logCountFor(item.code) + ' 筆'">{{ logCountFor(item.code) }} 筆</span>
+                            <span class="history-delete-btn" title="刪除此紀錄"
+                                @click.stop="removeHistoryItem(item.code)">&times;</span>
+                        </template>
+                    </div>
+                </div>
+                <div class="history-actions">
+                    <template v-if="compareMode">
+                        <button type="button" class="mini-btn primary" :disabled="compareSelected.length < 2 || compareLoading"
+                            @click="runCompare">{{ compareLoading ? '比較中...' : ('比較 ' + compareSelected.length + ' 支並複製') }}</button>
+                        <button type="button" class="mini-btn" @click="exitCompareMode">取消</button>
+                    </template>
+                    <template v-else-if="scanMode">
+                        <button type="button" class="mini-btn" :disabled="scanLoading || sortedHistory.length === 0"
+                            @click="selectAllForScan">全選</button>
+                        <button type="button" class="mini-btn primary" :disabled="scanSelected.length < 1 || scanLoading || strategy === 'general'"
+                            @click="runScan">{{ scanLoading ? '掃描中...' : ('開始掃描 ' + scanSelected.length + ' 支') }}</button>
+                        <button type="button" class="mini-btn" :disabled="scanLoading" @click="exitScanMode">取消</button>
+                    </template>
+                    <template v-else>
+                        <button type="button" class="mini-btn" :disabled="scanLoading || strategy === 'general'"
+                            :title="strategy === 'general' ? '先在下方選一個策略，才能掃描' : '勾選要掃描的自選股'"
+                            @click="enterScanMode">掃描</button>
+                        <button type="button" class="mini-btn" :disabled="sortedHistory.length < 2"
+                            @click="enterCompareMode">比較</button>
+                    </template>
+                </div>
+            </div>
+            <div class="scan-legend" v-show="hasScanResults && !compareMode && !scanMode">
+                <span><i class="scan-dot fit"></i>符合</span>
+                <span><i class="scan-dot near"></i>接近</span>
+                <span><i class="scan-dot no"></i>不符</span>
+                <span><i class="scan-dot na"></i>無法判斷</span>
+                <span v-if="scanMeta">{{ scanMeta }}</span>
+            </div>
+            <div class="error-panel" v-show="compareError" style="display: flex; padding: 12px 16px;">
+                <span>{{ compareError }}</span>
+            </div>
+            <div class="error-panel" v-show="scanError" style="display: flex; padding: 12px 16px;">
+                <span>{{ scanError }}</span>
+            </div>
+            <div class="prompt-meta" v-show="compareNotice">{{ compareNotice }}</div>
+
+            <!-- Strategy row -->
+            <div class="strategy-row">
+                <div class="strategy-field">
+                    <span class="strategy-label">策略</span>
+                    <select class="strategy-select" v-model="strategy">
+                        <option v-for="opt in strategyOptions" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+                    </select>
+                </div>
+                <div class="strategy-field">
+                    <span class="strategy-label">我的狀態</span>
+                    <div class="prompt-tab-group">
+                        <button type="button" class="prompt-tab" :class="{ active: positionKind === 'none' }"
+                            @click="positionKind = 'none'">想買</button>
+                        <button type="button" class="prompt-tab" :class="{ active: positionKind === 'holding' }"
+                            @click="positionKind = 'holding'">已持有</button>
+                        <button type="button" class="prompt-tab" :class="{ active: positionKind === 'reduce' }"
+                            @click="positionKind = 'reduce'">想減碼</button>
+                    </div>
+                </div>
+                <div class="strategy-field" v-show="positionKind !== 'none'">
+                    <span class="strategy-label">成本 (元)</span>
+                    <input class="strategy-input" type="number" min="0" step="0.01" v-model="positionCost"
+                        placeholder="例如 980">
+                </div>
+                <div class="strategy-field" v-show="positionKind === 'holding'">
+                    <span class="strategy-label">張數</span>
+                    <input class="strategy-input" type="number" min="0" step="1" v-model="positionLots"
+                        placeholder="例如 2">
+                </div>
+                <div class="strategy-field">
+                    <span class="strategy-label">週期</span>
+                    <div class="prompt-tab-group">
+                        <button type="button" class="prompt-tab" :class="{ active: horizon === 'day' }"
+                            @click="horizon = 'day'">當日</button>
+                        <button type="button" class="prompt-tab" :class="{ active: horizon === 'swing' }"
+                            @click="horizon = 'swing'">波段</button>
+                        <button type="button" class="prompt-tab" :class="{ active: horizon === 'long' }"
+                            @click="horizon = 'long'">中長線</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Toggle -->
+            <div class="settings-row">
+                <label>
+                    <input type="checkbox" v-model="webToggle">
+                    <span>請 AI 聯網查基本面</span>
+                </label>
+                <label>
+                    <input type="checkbox" v-model="chipToggle">
+                    <span>{{ chipLoading ? '法人籌碼載入中...' : (chipError || '查詢法人籌碼 (僅限台股)') }}</span>
+                </label>
+                <label>
+                    <input type="checkbox" v-model="colorToggle">
+                    <span>啟用漲跌紅綠配色</span>
+                </label>
+                <label>
+                    <input type="checkbox" v-model="linesToggle">
+                    <span>顯示支撐與壓力線條</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Institutional rank card -->
+        <div class="card" style="overflow: hidden; display: flex; flex-direction: column; gap: 12px; min-height: auto;">
+            <div @click="toggleRank"
+                style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div class="card-title" style="margin-bottom: 0;">{{ rankTitle }}</div>
+                    <span class="prompt-meta" v-if="rankHeaderLabel">{{ rankHeaderLabel }}</span>
+                </div>
+                <div style="color: var(--text-secondary); font-size: 1.0rem; display: flex; align-items: center; gap: 6px;">
+                    <span>{{ rankCollapsed ? '點擊展開' : '點擊收合' }}</span>
+                    <svg style="width: 20px; height: 20px; fill: currentColor; transition: transform 0.3s;"
+                        :style="{ transform: rankCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }" viewBox="0 0 24 24">
+                        <path d="M7 10l5 5 5-5z" />
+                    </svg>
+                </div>
+            </div>
+            <div v-show="!rankCollapsed" class="advanced-section">
+                <div class="rank-controls">
+                    <div class="prompt-tab-group">
+                        <button type="button" class="prompt-tab" :class="{ active: rankView === 'stock' }"
+                            @click="rankView = 'stock'">個股</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankView === 'sector' }"
+                            @click="rankView = 'sector'">族群</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankView === 'volume' }"
+                            @click="rankView = 'volume'">量增</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankView === 'group' }"
+                            @click="rankView = 'group'">分類</button>
+                    </div>
+                    <div class="prompt-tab-group" v-show="rankView === 'group'">
+                        <button type="button" class="prompt-tab" :class="{ active: groupKind === 'industry' }"
+                            @click="selectGroupKind('industry')">產業</button>
+                        <button type="button" class="prompt-tab" :class="{ active: groupKind === 'concept' }"
+                            @click="selectGroupKind('concept')">概念</button>
+                    </div>
+                    <div class="prompt-tab-group" v-show="rankView === 'group'">
+                        <button type="button" class="prompt-tab" :class="{ active: groupMarket === 'all' }"
+                            @click="groupMarket = 'all'">全市場</button>
+                        <button type="button" class="prompt-tab" :class="{ active: groupMarket === 'twse' }"
+                            @click="groupMarket = 'twse'">上市</button>
+                        <button type="button" class="prompt-tab" :class="{ active: groupMarket === 'tpex' }"
+                            @click="groupMarket = 'tpex'">上櫃</button>
+                    </div>
+                    <div class="prompt-tab-group" v-show="rankView === 'group'">
+                        <button type="button" class="prompt-tab" :class="{ active: groupSort === 'amount' }"
+                            @click="groupSort = 'amount'">成交金額</button>
+                        <button type="button" class="prompt-tab" :class="{ active: groupSort === 'change' }"
+                            @click="groupSort = 'change'">平均漲跌</button>
+                    </div>
+                    <label v-show="rankView === 'group'" title="選一個族群，只顯示該族群成交金額前 30 檔">
+                        <span>族群</span>
+                        <select class="strategy-select" v-model="groupSelected" :disabled="!groupRows.length">
+                            <option v-for="(g, gi) in groupRows" :key="g.group" :value="g.group">
+                                {{ gi + 1 }}. {{ g.group }}（{{ g.avg_change_pct > 0 ? '+' : '' }}{{ g.avg_change_pct.toFixed(2) }}%，{{ g.count }} 檔）
+                            </option>
+                        </select>
+                    </label>
+                    <div class="prompt-tab-group" v-show="rankView !== 'volume' && rankView !== 'group'">
+                        <button type="button" class="prompt-tab" :class="{ active: rankMarket === 'twse' }"
+                            @click="rankMarket = 'twse'">上市</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankMarket === 'tpex' }"
+                            @click="rankMarket = 'tpex'">上櫃</button>
+                    </div>
+                    <div class="prompt-tab-group" v-show="rankView === 'volume'">
+                        <button type="button" class="prompt-tab" :class="{ active: volumeMarket === 'all' }"
+                            @click="volumeMarket = 'all'">全市場</button>
+                        <button type="button" class="prompt-tab" :class="{ active: volumeMarket === 'twse' }"
+                            @click="volumeMarket = 'twse'">上市</button>
+                        <button type="button" class="prompt-tab" :class="{ active: volumeMarket === 'tpex' }"
+                            @click="volumeMarket = 'tpex'">上櫃</button>
+                    </div>
+                    <div class="prompt-tab-group" v-show="rankView === 'volume'">
+                        <button type="button" class="prompt-tab" :class="{ active: volumeMetric === 'yesterday' }"
+                            @click="volumeMetric = 'yesterday'">對昨量</button>
+                        <button type="button" class="prompt-tab" :class="{ active: volumeMetric === 'avg5' }"
+                            @click="volumeMetric = 'avg5'">對 5 日均量</button>
+                    </div>
+                    <div class="prompt-tab-group" v-show="rankView === 'volume'">
+                        <button type="button" class="prompt-tab" :class="{ active: volumeKind === 'none' }"
+                            @click="selectVolumeKind('none')">不分類</button>
+                        <button type="button" class="prompt-tab" :class="{ active: volumeKind === 'industry' }"
+                            @click="selectVolumeKind('industry')">產業</button>
+                        <button type="button" class="prompt-tab" :class="{ active: volumeKind === 'concept' }"
+                            @click="selectVolumeKind('concept')">概念</button>
+                    </div>
+                    <label v-show="rankView === 'volume' && volumeKind !== 'none'" title="只看這個族群裡放量的股票">
+                        <span>族群</span>
+                        <select class="strategy-select" v-model="volumeGroup" :disabled="volumeGroupLoading || !volumeGroupOptions.length">
+                            <option v-if="volumeGroupLoading" value="">載入中...</option>
+                            <option v-for="(g, gi) in volumeGroupOptions" :key="g.group" :value="g.group">
+                                {{ gi + 1 }}. {{ g.group }}（{{ g.count }} 檔）
+                            </option>
+                        </select>
+                    </label>
+                    <label v-show="rankView === 'volume'" title="今日成交量低於此張數的股票不列入，避免冷門股 1 張變 10 張的雜訊">
+                        <span>今日至少</span>
+                        <input type="number" min="0" step="100" v-model.number="volumeMinVolume" style="width: 80px;">
+                        <span>張</span>
+                    </label>
+                    <div class="prompt-tab-group" v-show="rankView === 'sector'">
+                        <button type="button" class="prompt-tab" :class="{ active: sectorSort === 'chip' }"
+                            @click="sectorSort = 'chip'">法人合計</button>
+                        <button type="button" class="prompt-tab" :class="{ active: sectorSort === 'change' }"
+                            @click="sectorSort = 'change'">平均漲跌</button>
+                        <button type="button" class="prompt-tab" :class="{ active: sectorSort === 'turnover' }"
+                            @click="sectorSort = 'turnover'">成交金額</button>
+                    </div>
+                    <div class="prompt-tab-group" v-show="rankView === 'stock'">
+                        <button type="button" class="prompt-tab" :class="{ active: rankMetric === 'foreign' && rankSide === 'buy' }"
+                            @click="rankMetric = 'foreign'; rankSide = 'buy'">外資買超</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankMetric === 'trust' && rankSide === 'buy' }"
+                            @click="rankMetric = 'trust'; rankSide = 'buy'">投信買超</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankMetric === 'both' && rankSide === 'buy' }"
+                            @click="rankMetric = 'both'; rankSide = 'buy'">同步買超</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankSide === 'sell' }"
+                            @click="rankMetric = 'foreign'; rankSide = 'sell'">外資賣超</button>
+                    </div>
+                    <div class="prompt-tab-group" v-show="rankView !== 'volume' && rankView !== 'group'">
+                        <button type="button" class="prompt-tab" :class="{ active: rankDays === 1 }"
+                            @click="rankDays = 1">單日</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankDays === 3 }"
+                            @click="rankDays = 3">連 3 日</button>
+                        <button type="button" class="prompt-tab" :class="{ active: rankDays === 5 }"
+                            @click="rankDays = 5">連 5 日</button>
+                    </div>
+                    <label v-show="rankView === 'stock' || rankView === 'volume'">
+                        <input type="checkbox" v-model="rankExcludeEtf">
+                        <span>排除 ETF</span>
+                    </label>
+                    <button type="button" class="mini-btn" v-show="rankView === 'stock'" :disabled="rankLoading" @click="loadRank(true)">
+                        {{ rankLoading ? (rankDays > 1 ? '載入中，第一次約 ' + rankDays + ' 秒' : '載入中...') : '重新整理' }}
+                    </button>
+                    <button type="button" class="mini-btn" v-show="rankView === 'sector'" :disabled="sectorLoading" @click="loadSector(true)">
+                        {{ sectorLoading ? '載入中，第一次約 5 秒' : '重新整理' }}
+                    </button>
+                    <button type="button" class="mini-btn" v-show="rankView === 'volume'" :disabled="volumeLoading" @click="loadVolume(true)">
+                        {{ volumeLoading ? '載入中，全市場約 10 秒' : '重新整理' }}
+                    </button>
+                    <button type="button" class="mini-btn" v-show="rankView === 'group'" :disabled="groupLoading" @click="loadGroup(true)">
+                        {{ groupLoading ? '載入中，全市場約 10 秒' : '重新整理' }}
+                    </button>
+                </div>
+
+                <!-- Grouped stock view (industry / concept) -->
+                <template v-if="rankView === 'group'">
+                    <div class="prompt-meta" v-if="groupData">
+                        {{ groupDescription }}。從上方「族群」下拉選一組，只列該組成交金額前 {{ groupData.top_n }} 檔（較有名的在前）；點列即查詢，☆ 加入自選股。{{ groupKind === 'concept' ? '概念股清單為手動維護（concepts.json），官方沒有這種分類。' : '族群為證交所 / 櫃買官方產業別，ETF 與權證不列入。' }}
+                    </div>
+                    <div class="error-panel" v-show="groupError" style="display: flex; padding: 12px 16px;">
+                        <span>{{ groupError }}</span>
+                    </div>
+                    <div class="loader-container" v-show="groupLoading && !groupData" style="display: flex; padding: 20px 0;">
+                        <div class="spinner" style="width: 32px; height: 32px;"></div>
+                    </div>
+                    <div class="group-list" v-if="groupSelectedData">
+                        <div class="group-block">
+                            <div class="group-head">
+                                <span class="group-rank-no">{{ groupSelectedIndex + 1 }}</span>
+                                <span class="group-name">{{ groupSelectedData.group }}</span>
+                                <span class="group-change" :class="getChipCellClass(groupSelectedData.avg_change_pct)">{{ groupSelectedData.avg_change_pct > 0 ? '+' : '' }}{{ groupSelectedData.avg_change_pct.toFixed(2) }}%</span>
+                                <span class="group-stat">{{ groupSelectedData.count }} 檔（漲 {{ groupSelectedData.up_count }} / 跌 {{ groupSelectedData.down_count }}）</span>
+                                <span class="group-stat">成交 {{ groupSelectedData.amount_yi.toLocaleString() }} 億</span>
+                                <span class="group-stat" style="margin-left: auto;">顯示前 {{ groupSelectedData.stocks.length }} 檔</span>
+                            </div>
+                            <div class="rank-table-wrap">
+                                <table class="rank-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>代碼</th>
+                                            <th>名稱</th>
+                                            <th>市場</th>
+                                            <th class="rank-num">現價</th>
+                                            <th class="rank-num">漲跌幅</th>
+                                            <th class="rank-num">成交量 (張)</th>
+                                            <th class="rank-num">成交 (億)</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(row, idx) in groupSelectedData.stocks" :key="row.code" @click="searchFromHistory(row.code)">
+                                            <td style="color: var(--text-secondary);">{{ idx + 1 }}</td>
+                                            <td>{{ row.code }}</td>
+                                            <td>{{ row.name || '-' }}</td>
+                                            <td class="prompt-meta">{{ row.market === 'tpex' ? '上櫃' : '上市' }}</td>
+                                            <td class="rank-num">{{ row.close }}</td>
+                                            <td class="rank-num" :class="getChipCellClass(row.change_rate)">{{ row.change_rate > 0 ? '+' : '' }}{{ row.change_rate.toFixed(2) }}%</td>
+                                            <td class="rank-num">{{ row.volume.toLocaleString() }}</td>
+                                            <td class="rank-num">{{ row.amount_yi.toLocaleString() }}</td>
+                                            <td>
+                                                <span class="rank-star" :class="{ active: isInWatchlist(row.code) }"
+                                                    :title="isInWatchlist(row.code) ? '已在自選股' : '加入自選股並釘選'"
+                                                    @click.stop="addToWatchlist(row.code, row.name)">{{ isInWatchlist(row.code) ? '★' : '☆' }}</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="prompt-meta" v-else-if="groupData && !groupLoading">這個條件下沒有可分組的股票。</div>
+                </template>
+
+                <!-- Volume surge view -->
+                <template v-if="rankView === 'volume'">
+                    <div class="prompt-meta" v-if="volumeData">
+                        {{ volumeDescription }}。點列即查詢，☆ 加入自選股。盤中「今日量」是到目前為止的累計量，開盤初期倍數會偏低；快照每 {{ volumeData.cache_ttl }} 秒更新一次。
+                    </div>
+                    <div class="error-panel" v-show="volumeError" style="display: flex; padding: 12px 16px;">
+                        <span>{{ volumeError }}</span>
+                    </div>
+                    <div class="loader-container" v-show="volumeLoading && !volumeData" style="display: flex; padding: 20px 0;">
+                        <div class="spinner" style="width: 32px; height: 32px;"></div>
+                    </div>
+                    <div class="rank-table-wrap" v-if="volumeRows.length">
+                        <table class="rank-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>代碼</th>
+                                    <th>名稱</th>
+                                    <th>市場</th>
+                                    <th class="rank-num">現價</th>
+                                    <th class="rank-num">漲跌幅</th>
+                                    <th class="rank-num">今日量 (張)</th>
+                                    <th class="rank-num">{{ volumeMetric === 'avg5' ? '5 日均量 (張)' : '昨量 (張)' }}</th>
+                                    <th class="rank-num">倍數</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(row, idx) in volumeRows" :key="row.code" @click="searchFromHistory(row.code)">
+                                    <td style="color: var(--text-secondary);">{{ idx + 1 }}</td>
+                                    <td>{{ row.code }}</td>
+                                    <td>{{ row.name || '-' }}</td>
+                                    <td class="prompt-meta">{{ row.market === 'tpex' ? '上櫃' : '上市' }}</td>
+                                    <td class="rank-num">{{ row.close }}</td>
+                                    <td class="rank-num" :class="getChipCellClass(row.change_rate)">{{ row.change_rate }}%</td>
+                                    <td class="rank-num">{{ row.today_volume.toLocaleString() }}</td>
+                                    <td class="rank-num">{{ (volumeMetric === 'avg5' ? row.avg5_volume : row.yesterday_volume)?.toLocaleString() ?? '-' }}</td>
+                                    <td class="rank-num" style="font-weight: 600;">{{ row.ratio.toFixed(2) }}x</td>
+                                    <td>
+                                        <span class="rank-star" :class="{ active: isInWatchlist(row.code) }"
+                                            :title="isInWatchlist(row.code) ? '已在自選股' : '加入自選股並釘選'"
+                                            @click.stop="addToWatchlist(row.code, row.name)">{{ isInWatchlist(row.code) ? '★' : '☆' }}</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="prompt-meta" v-else-if="volumeData && !volumeLoading">這個條件下沒有符合的股票。</div>
+                </template>
+
+                <!-- Sector view -->
+                <template v-if="rankView === 'sector'">
+                    <div class="prompt-meta" v-if="sectorData">
+                        {{ sectorDescription }}。指標股 = 該族群成交金額前 3；點小標籤即查詢該股，☆ 加自選。族群為證交所官方產業別，沒有概念股分類。
+                    </div>
+                    <div class="error-panel" v-show="sectorError" style="display: flex; padding: 12px 16px;">
+                        <span>{{ sectorError }}</span>
+                    </div>
+                    <div class="prompt-meta" v-if="sectorData && !sectorData.has_quotes" style="color: #fca5a5;">
+                        今日行情尚未取得，漲跌與成交金額暫時為空，只有法人數字。
+                    </div>
+                    <div class="loader-container" v-show="sectorLoading && !sectorData" style="display: flex; padding: 20px 0;">
+                        <div class="spinner" style="width: 32px; height: 32px;"></div>
+                    </div>
+                    <div class="rank-table-wrap" v-if="sectorRows.length">
+                        <table class="rank-table sector-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>族群</th>
+                                    <th class="rank-num">檔數 (漲/跌)</th>
+                                    <th class="rank-num">平均漲跌</th>
+                                    <th class="rank-num">成交 (億)</th>
+                                    <th class="rank-num">外資 (張)</th>
+                                    <th class="rank-num">投信 (張)</th>
+                                    <th class="rank-num">合計 (張)</th>
+                                    <th>指標股 (成交金額前 3)</th>
+                                    <th>法人買超前 3</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(row, idx) in sectorRows" :key="row.sector" style="cursor: default;">
+                                    <td style="color: var(--text-secondary);">{{ idx + 1 }}</td>
+                                    <td style="font-weight: 600;">{{ row.sector }}</td>
+                                    <td class="rank-num">{{ row.count }} <span class="prompt-meta">({{ row.up_count }}/{{ row.down_count }})</span></td>
+                                    <td class="rank-num" :class="getChipCellClass(row.avg_change_pct)">{{ row.avg_change_pct ? row.avg_change_pct + '%' : '-' }}</td>
+                                    <td class="rank-num">{{ row.turnover_yi ? row.turnover_yi.toLocaleString() : '-' }}</td>
+                                    <td class="rank-num" :class="getChipCellClass(row.foreign_net)">{{ row.foreign_net }}</td>
+                                    <td class="rank-num" :class="getChipCellClass(row.trust_net)">{{ row.trust_net }}</td>
+                                    <td class="rank-num" :class="getChipCellClass(row.total)">{{ row.total }}</td>
+                                    <td>
+                                        <div class="leader-tags">
+                                            <span v-for="s in row.leaders" :key="s.code" class="leader-tag"
+                                                :title="s.code + ' 成交 ' + s.turnover_yi + ' 億'"
+                                                @click="searchFromHistory(s.code)">
+                                                {{ s.name || s.code }}
+                                                <span :class="getChipCellClass(s.change_pct)">{{ s.change_pct ? s.change_pct + '%' : '' }}</span>
+                                                <span class="rank-star" :class="{ active: isInWatchlist(s.code) }"
+                                                    @click.stop="addToWatchlist(s.code, s.name)">{{ isInWatchlist(s.code) ? '★' : '☆' }}</span>
+                                            </span>
+                                            <span v-if="!row.leaders.length" class="prompt-meta">-</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="leader-tags">
+                                            <span v-for="s in row.chip_top" :key="s.code" class="leader-tag"
+                                                :title="s.code + ' 外資+投信 ' + s.net + ' 張'"
+                                                @click="searchFromHistory(s.code)">
+                                                {{ s.name || s.code }}
+                                                <span class="price-cell price-up">{{ s.net }}</span>
+                                                <span class="rank-star" :class="{ active: isInWatchlist(s.code) }"
+                                                    @click.stop="addToWatchlist(s.code, s.name)">{{ isInWatchlist(s.code) ? '★' : '☆' }}</span>
+                                            </span>
+                                            <span v-if="!row.chip_top.length" class="prompt-meta">-</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="prompt-meta" v-else-if="sectorData && !sectorLoading">沒有可彙總的族群資料。</div>
+                </template>
+
+                <!-- Stock view -->
+                <div class="prompt-meta" v-if="rankView === 'stock' && rankData">
+                    {{ rankDescription }}。點列即查詢，☆ 加入自選股。
+                </div>
+                <div class="error-panel" v-show="rankView === 'stock' && rankError" style="display: flex; padding: 12px 16px;">
+                    <span>{{ rankError }}</span>
+                </div>
+                <div class="loader-container" v-show="rankView === 'stock' && rankLoading && !rankData" style="display: flex; padding: 20px 0;">
+                    <div class="spinner" style="width: 32px; height: 32px;"></div>
+                </div>
+                <div class="rank-table-wrap" v-if="rankView === 'stock' && rankRows.length">
+                    <table class="rank-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>代碼</th>
+                                <th>名稱</th>
+                                <th class="rank-num">外資 (張)</th>
+                                <th class="rank-num">投信 (張)</th>
+                                <th class="rank-num">合計 (張)</th>
+                                <th class="rank-num" v-if="rankDays > 1">連續</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(row, idx) in rankRows" :key="row.code" @click="searchFromHistory(row.code)">
+                                <td style="color: var(--text-secondary);">{{ idx + 1 }}</td>
+                                <td>{{ row.code }}</td>
+                                <td>{{ row.name || '-' }}</td>
+                                <td class="rank-num" :class="getChipCellClass(row.foreign_net)">{{ row.foreign_net }}</td>
+                                <td class="rank-num" :class="getChipCellClass(row.trust_net)">{{ row.trust_net }}</td>
+                                <td class="rank-num" :class="getChipCellClass(row.total)">{{ row.total }}</td>
+                                <td class="rank-num" v-if="rankDays > 1">{{ row.streak_days }} 日</td>
+                                <td>
+                                    <span class="rank-star" :class="{ active: isInWatchlist(row.code) }"
+                                        :title="isInWatchlist(row.code) ? '已在自選股' : '加入自選股並釘選'"
+                                        @click.stop="addToWatchlist(row.code, row.name)">{{ isInWatchlist(row.code) ? '★' : '☆' }}</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="prompt-meta" v-else-if="rankView === 'stock' && rankData && !rankLoading">這個條件下沒有符合的股票。</div>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div class="loader-container" v-show="loading" style="display: flex;">
+            <div class="spinner"></div>
+            <p style="color: var(--text-secondary);">正在抓取即時市況並計算技術指標，請稍候...</p>
+        </div>
+
+        <!-- Error Panel -->
+        <div class="error-panel" v-show="error" style="display: flex;">
+            <svg style="width: 24px; height: 24px; fill: var(--danger);" viewBox="0 0 24 24">
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+            </svg>
+            <span>{{ error }}</span>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="dashboard" v-show="showDashboard" style="display: flex;">
+            <!-- Summary Info + main action -->
+            <div class="summary-panel">
+                <div class="summary-left">
+                    <div class="target-name">{{ stockData?.stock_name }} ({{ stockData?.stock_code }})</div>
+                    <div class="target-time">更新時間：{{ stockData?.data_time }}</div>
+                    <div class="prompt-meta">{{ promptSummary }}</div>
+                </div>
+                <div class="summary-right">
+                    <div class="price-group">
+                        <div class="current-price">{{ stockData?.current_price }}</div>
+                        <div class="price-change" :class="priceChangeClass">{{ stockData?.price_change }}</div>
+                    </div>
+                    <button class="main-copy-btn" :class="{ copied: mainCopied }" :disabled="promptLoading"
+                        @click="copyMainPrompt">
+                        <svg style="width: 20px; height: 20px; fill: white;" viewBox="0 0 24 24">
+                            <path
+                                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                        </svg>
+                        <span>{{ mainCopyText }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Decision log quick entry (slides out after copying) -->
+            <div class="log-form" v-if="logFormOpen">
+                <span class="sub-title" style="font-size: 0.9rem;">記一筆決策</span>
+                <span class="prompt-meta">{{ logDraft.code }} {{ logDraft.name }} · {{ logDraft.date }} · {{ logDraft.price }} 元 · {{ strategyLabel(logDraft.strategy) }}</span>
+                <select class="strategy-select" v-model="logDraft.action">
+                    <option v-for="opt in logActionOptions" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+                </select>
+                <input class="strategy-input" type="number" step="0.01" min="0" v-model="logDraft.entry" placeholder="進場">
+                <input class="strategy-input" type="number" step="0.01" min="0" v-model="logDraft.stop" placeholder="停損">
+                <input class="strategy-input" type="number" step="0.01" min="0" v-model="logDraft.target" placeholder="停利">
+                <input class="strategy-input wide" type="text" maxlength="2000" v-model="logDraft.note"
+                    placeholder="備註（AI 給的結論、我的想法）" @keydown.enter="saveLogEntry">
+                <button type="button" class="mini-btn primary" @click="saveLogEntry">儲存</button>
+                <button type="button" class="mini-btn" @click="logFormOpen = false">略過</button>
+            </div>
+
+            <!-- Prompts, links, watchlist tools (right under the summary so switching is quick) -->
+            <div class="card"
+                style="overflow: hidden; display: flex; flex-direction: column; gap: 12px; min-height: auto;">
+                <div @click="advancedCollapsed = !advancedCollapsed"
+                    style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+                    <div class="card-title" style="margin-bottom: 0;">提示詞 / Goodinfo 連結 / 自選股匯出匯入</div>
+                    <div
+                        style="color: var(--text-secondary); font-size: 1.0rem; display: flex; align-items: center; gap: 6px;">
+                        <span>{{ advancedCollapsed ? '點擊展開' : '點擊收合' }}</span>
+                        <svg style="width: 20px; height: 20px; fill: currentColor; transition: transform 0.3s;"
+                            :style="{ transform: advancedCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }"
+                            viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z" />
+                        </svg>
+                    </div>
+                </div>
+                <div v-show="!advancedCollapsed" class="advanced-section">
+                    <div v-if="stockData?.stock_code && stockData?.is_taiwan_stock"
+                        style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                        <button type="button" class="mini-btn primary" @click="openGoodinfoBoth">一鍵開啟 Goodinfo 兩頁</button>
+                        <a :href="goodinfoDetailUrl" target="_blank" rel="noopener"
+                            class="mini-btn" style="text-decoration: none; color: var(--primary);">Goodinfo 股票詳情</a>
+                        <a :href="goodinfoChartUrl" target="_blank" rel="noopener"
+                            class="mini-btn" style="text-decoration: none; color: var(--primary);">Goodinfo K線圖</a>
+                        <span class="prompt-meta" v-show="goodinfoNotice">{{ goodinfoNotice }}</span>
+                    </div>
+
+                    <div>
+                        <div class="prompt-header">
+                            <div class="sub-title">目前會複製的 AI 分析提示詞</div>
+                            <span class="prompt-meta" v-show="promptLoading">重新組合中...</span>
+                        </div>
+                        <textarea class="prompt-textarea" readonly>{{ stockData?.prompt }}</textarea>
+                    </div>
+
+                    <div>
+                        <div class="prompt-header" style="flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                                <div class="sub-title">只含即時市況的簡短版</div>
+                                <div class="prompt-tab-group">
+                                    <button type="button" class="prompt-tab"
+                                        :class="{ active: activeBasicTab === 'default' }"
+                                        @click="activeBasicTab = 'default'">預設</button>
+                                    <button type="button" class="prompt-tab" :class="{ active: activeBasicTab === 'tech' }"
+                                        @click="activeBasicTab = 'tech'">加入技術分析請求</button>
+                                </div>
+                            </div>
+                            <button class="mini-btn" @click="copyBasicPrompt">{{ copyBasicBtnText }}</button>
+                        </div>
+                        <textarea class="prompt-textarea" style="height: 180px;"
+                            readonly>{{ activeBasicTab === 'tech' ? '以純技術分析幫我分析這支股票現在如何呢?\n\n' + stockData?.basic_prompt : stockData?.basic_prompt }}</textarea>
+                    </div>
+
+                    <div v-show="comparePrompt">
+                        <div class="prompt-header">
+                            <div class="sub-title">最近一次的多股比較提示詞</div>
+                            <button class="mini-btn" @click="copyText(comparePrompt, '已複製比較提示詞')">再複製一次</button>
+                        </div>
+                        <textarea class="prompt-textarea" style="height: 220px;" readonly>{{ comparePrompt }}</textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                        <span class="sub-title">自選股</span>
+                        <button class="mini-btn" @click="exportWatchlist" :disabled="historyList.length === 0">匯出 JSON</button>
+                        <button class="mini-btn" @click="triggerImport">匯入 JSON</button>
+                        <input type="file" accept="application/json,.json" ref="importInput" style="display: none;"
+                            @change="importWatchlist">
+                        <span class="prompt-meta">存在這個瀏覽器裡；換裝置時用匯出 / 匯入搬過去。</span>
+                    </div>
+
+                    <!-- Decision log -->
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div class="prompt-header" style="flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; cursor: pointer; user-select: none;"
+                                @click="logCollapsed = !logCollapsed">
+                                <div class="sub-title">決策日誌</div>
+                                <span class="prompt-meta">共 {{ decisionLog.length }} 筆<span v-if="currentLogCount">，這支股票 {{ currentLogCount }} 筆</span> · {{ logCollapsed ? '點擊展開' : '點擊收合' }}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="mini-btn" @click="openLogForm" :disabled="!stockData?.stock_code">記一筆</button>
+                                <button class="mini-btn" @click="exportLog" :disabled="decisionLog.length === 0">匯出日誌</button>
+                                <button class="mini-btn" @click="triggerLogImport">匯入日誌</button>
+                                <input type="file" accept="application/json,.json" ref="logImportInput" style="display: none;"
+                                    @change="importLog">
+                            </div>
+                        </div>
+                        <div v-show="!logCollapsed" style="display: flex; flex-direction: column; gap: 10px;">
+                            <div class="log-stats" v-if="logStats.length">
+                                <span v-for="s in logStats" :key="s.strategy">
+                                    {{ s.label }}：{{ s.reviewed ? (s.hitRate + '% 命中 (' + s.hit + '/' + s.reviewed + ')') : '尚未回顧' }}<span v-if="s.pending">，{{ s.pending }} 筆未定</span>
+                                </span>
+                            </div>
+                            <div class="prompt-meta" v-if="!decisionLog.length">還沒有紀錄。複製提示詞後會跳出「記一筆決策」，把 AI 的結論與你的決定存下來，之後點「回顧」欄標記命中或落空。</div>
+                            <div class="rank-table-wrap" v-else>
+                                <table class="log-table">
+                                    <thead>
+                                        <tr>
+                                            <th>日期</th>
+                                            <th>代碼</th>
+                                            <th>策略</th>
+                                            <th>行動</th>
+                                            <th class="rank-num">當時價</th>
+                                            <th class="rank-num">進 / 損 / 利</th>
+                                            <th>備註</th>
+                                            <th>回顧</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="entry in recentLog" :key="entry.id">
+                                            <td style="white-space: nowrap;">{{ entry.date }}</td>
+                                            <td style="white-space: nowrap; cursor: pointer; color: var(--primary);"
+                                                @click="searchFromHistory(entry.code)">{{ entry.code }} {{ entry.name }}</td>
+                                            <td style="white-space: nowrap;">{{ strategyLabel(entry.strategy) }}</td>
+                                            <td style="white-space: nowrap;">{{ actionLabel(entry.action) }}</td>
+                                            <td class="rank-num">{{ entry.price }}</td>
+                                            <td class="rank-num" style="white-space: nowrap;">{{ entry.entry || '-' }} / {{ entry.stop || '-' }} / {{ entry.target || '-' }}</td>
+                                            <td class="log-note" :title="entry.note">{{ entry.note || '-' }}</td>
+                                            <td>
+                                                <button type="button" class="review-btn" :class="entry.review || ''"
+                                                    title="點一下切換：未定 → 命中 → 落空"
+                                                    @click="cycleReview(entry.id)">{{ reviewLabel(entry.review) }}</button>
+                                            </td>
+                                            <td><span class="history-delete-btn" title="刪除這筆" @click="removeLogEntry(entry.id)">&times;</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="prompt-meta" v-if="decisionLog.length > recentLog.length">只顯示最近 {{ recentLog.length }} 筆，全部紀錄請用匯出。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid details -->
+            <div class="dashboard-grid">
+                <!-- Basic Data Card -->
+                <div class="card">
+                    <div class="card-title">基本數據</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">開盤價</span>
+                            <span class="info-value">{{ stockData?.open }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">昨收價</span>
+                            <span class="info-value">{{ stockData?.yesterday_close }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">最高價</span>
+                            <span class="info-value">{{ stockData?.high }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">最低價</span>
+                            <span class="info-value">{{ stockData?.low }}</span>
+                        </div>
+                        <div class="info-item" style="grid-column: span 2;">
+                            <span class="info-label">成交量 (張 / 1張=1000股)</span>
+                            <span class="info-value">{{ stockData?.volume }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technical Indicator Card -->
+                <div class="card">
+                    <div class="card-title">技術均線與強弱指標</div>
+                    <div class="indicator-list">
+                        <!-- MA5 -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">
+                                <span class="indicator-name">5 日均線 (MA5)</span>
+                                <span class="indicator-desc">短期強弱分水嶺</span>
+                            </div>
+                            <div class="indicator-val-group">
+                                <span class="indicator-value">{{ stockData?.ma5 }}</span>
+                                <div>
+                                    <span class="indicator-badge" :class="getRelationClass(stockData?.ma5_relation)">
+                                        {{ stockData?.ma5_relation }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- MA20 -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">
+                                <span class="indicator-name">20 日均線 (MA20)</span>
+                                <span class="indicator-desc">月線，中期趨勢支撐</span>
+                            </div>
+                            <div class="indicator-val-group">
+                                <span class="indicator-value">{{ stockData?.ma20 }}</span>
+                                <div>
+                                    <span class="indicator-badge" :class="getRelationClass(stockData?.ma20_relation)">
+                                        {{ stockData?.ma20_relation }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- MA60 -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">
+                                <span class="indicator-name">60 日均線 (MA60)</span>
+                                <span class="indicator-desc">季線，生命線/長線趨勢</span>
+                            </div>
+                            <div class="indicator-val-group">
+                                <span class="indicator-value">{{ stockData?.ma60 }}</span>
+                                <div>
+                                    <span class="indicator-badge" :class="getRelationClass(stockData?.ma60_relation)">
+                                        {{ stockData?.ma60_relation }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- RSI-14 -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">
+                                <span class="indicator-name">RSI-14 指標</span>
+                                <span class="indicator-desc">相對強弱，大於70超買，小於30超賣</span>
+                            </div>
+                            <div class="indicator-val-group">
+                                <span class="indicator-value">{{ stockData?.rsi14 }}</span>
+                                <div>
+                                    <span class="indicator-badge" :class="getRsiClass(stockData?.rsi14_status)">
+                                        {{ stockData?.rsi14_status }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support & Resistance Levels Card -->
+                <div class="card">
+                    <div class="card-title">關鍵支撐與壓力位</div>
+                    <div class="indicator-list">
+                        <!-- Upper Neckline -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">
+                                <span class="indicator-name">上頸線 (成交量壓力區)</span>
+                                <span class="indicator-desc">成交量密集區形成的阻力位</span>
+                            </div>
+                            <div class="indicator-val-group"
+                                style="flex-direction: column; align-items: flex-end; gap: 4px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 11px; color: var(--text-secondary);">短期 (20日):</span>
+                                    <span class="indicator-value" style="font-size: 15px;">{{
+                                        stockData?.upper_neckline_short ? stockData.upper_neckline_short + ' 元' : '-'
+                                        }}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 11px; color: var(--text-secondary);">中期 (60日):</span>
+                                    <span class="indicator-value" style="font-size: 15px;">{{
+                                        stockData?.upper_neckline_mid ? stockData.upper_neckline_mid + ' 元' : '-'
+                                        }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Lower Neckline -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">
+                                <span class="indicator-name">下頸線 (成交量支撐區)</span>
+                                <span class="indicator-desc">成交量密集區形成的支撐位</span>
+                            </div>
+                            <div class="indicator-val-group"
+                                style="flex-direction: column; align-items: flex-end; gap: 4px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 11px; color: var(--text-secondary);">短期 (20日):</span>
+                                    <span class="indicator-value" style="font-size: 15px;">{{
+                                        stockData?.lower_neckline_short ? stockData.lower_neckline_short + ' 元' : '-'
+                                        }}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 11px; color: var(--text-secondary);">中期 (60日):</span>
+                                    <span class="indicator-value" style="font-size: 15px;">{{
+                                        stockData?.lower_neckline_mid ? stockData.lower_neckline_mid + ' 元' : '-'
+                                        }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- K-Line Table Card -->
+                <div class="card table-card">
+                    <div class="card-title">近期走勢 (最近 30 個交易日)</div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr v-if="showChipColumns">
+                                    <th>日期</th>
+                                    <th>收盤價</th>
+                                    <th>開盤價</th>
+                                    <th>最高價</th>
+                                    <th>最低價</th>
+                                    <th>成交量 (張)</th>
+                                    <th>外資買賣超(張)</th>
+                                    <th>投信買賣超(張)</th>
+                                    <th>MA5</th>
+                                    <th>MA20</th>
+                                    <th>MA60</th>
+                                    <th>RSI-14</th>
+                                </tr>
+                                <tr v-else>
+                                    <th>日期</th>
+                                    <th>收盤價</th>
+                                    <th>開盤價</th>
+                                    <th>最高價</th>
+                                    <th>最低價</th>
+                                    <th>成交量 (張)</th>
+                                    <th>MA5</th>
+                                    <th>MA20</th>
+                                    <th>MA60</th>
+                                    <th>RSI-14</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="row in stockData?.history" :key="row.date">
+                                    <td>{{ row.date }}</td>
+                                    <td :class="getPriceCellClass(row.close, row.open)">{{ row.close }}</td>
+                                    <td>{{ row.open }}</td>
+                                    <td>{{ row.high }}</td>
+                                    <td>{{ row.low }}</td>
+                                    <td>{{ row.volume }}</td>
+                                    <template v-if="showChipColumns">
+                                        <td :class="getChipCellClass(row.foreign_net)">{{ chipLoading ? '載入中' : row.foreign_net }}</td>
+                                        <td :class="getChipCellClass(row.trust_net)">{{ chipLoading ? '載入中' : row.trust_net }}</td>
+                                    </template>
+                                    <td>{{ row.ma5 }}</td>
+                                    <td>{{ row.ma20 }}</td>
+                                    <td>{{ row.ma60 }}</td>
+                                    <td>{{ row.rsi14 }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsible Chart Card -->
+            <div class="card chart-card"
+                style="grid-column: 1 / -1; overflow: hidden; display: flex; flex-direction: column; gap: 12px; margin-top: 10px; min-height: auto;">
+                <div class="chart-header" @click="toggleChart"
+                    style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+                    <div class="card-title"
+                        style="margin-bottom: 0; border-left: 3px solid var(--primary); padding-left: 10px;">技術分析圖表
+                        (K線/均線/成交量/RSI)</div>
+                    <div class="toggle-icon"
+                        style="transition: transform 0.3s ease; color: var(--text-secondary); font-size: 1.0rem; display: flex; align-items: center; gap: 6px;">
+                        <span>{{ chartCollapsed ? '點擊展開' : '點擊收合' }}</span>
+                        <svg style="width: 20px; height: 20px; fill: currentColor; transition: transform 0.3s;"
+                            :style="{ transform: chartCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }"
+                            viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z" />
+                        </svg>
+                    </div>
+                </div>
+                <div v-show="!chartCollapsed" style="width: 100%; margin-top: 10px;">
+                    <div id="stockChart" style="width: 100%; height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026. 免責聲明：本工具所提供之數據僅供學術與技術分析參考，不構成任何投資建議。</p>
+    </footer>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted, nextTick, watch } = Vue;
+
+        createApp({
+            setup() {
+                const stockCode = ref('');
+                const loading = ref(false);
+                const error = ref('');
+                const showDashboard = ref(false);
+
+                const chipToggle = ref(false);
+                const colorToggle = ref(false);
+                const linesToggle = ref(true);
+                const webToggle = ref(true);
+                const chipLoading = ref(false);
+                const chipError = ref('');
+                const activeBasicTab = ref('default');
+
+                // Strategy options
+                const strategyOptions = [
+                    { id: 'general', label: '通用分析' },
+                    { id: 'trend_ma', label: '均線趨勢' },
+                    { id: 'pullback', label: '拉回支撐' },
+                    { id: 'breakout', label: '突破追價' },
+                    { id: 'chip_follow', label: '籌碼跟主力' },
+                    { id: 'risk_check', label: '持股健檢' }
+                ];
+                const strategy = ref('general');
+                const positionKind = ref('none');
+                const positionCost = ref('');
+                const positionLots = ref('');
+                const horizon = ref('swing');
+                const promptLoading = ref(false);
+
+                const mainCopyText = ref('複製給 AI');
+                const mainCopied = ref(false);
+                const copyBasicBtnText = ref('複製簡短版');
+
+                const stockData = ref(null);
+                const historyList = ref([]);
+                const chartCollapsed = ref(true);
+                const advancedCollapsed = ref(false);
+                const goodinfoNotice = ref('');
+                const chipCache = {};
+
+                // Compare mode
+                const compareMode = ref(false);
+                const compareSelected = ref([]);
+                const compareLoading = ref(false);
+                const compareError = ref('');
+                const compareNotice = ref('');
+                const comparePrompt = ref('');
+                const importInput = ref(null);
+
+                let stockChartInstance = null;
+                let chipRequestCode = '';
+                let promptRequestSeq = 0;
+                let promptDebounceTimer = null;
+                let positionSaveTimer = null;
+                let applyingPosition = false;
+
+                // LocalStorage keys
+                const HISTORY_KEY = 'stock_analysis_history';
+                const POSITIONS_KEY = 'stock_positions';
+
+                const normalizeHistoryItem = (item) => ({
+                    code: String(item.code || '').toUpperCase(),
+                    name: item.name || '',
+                    pinned: !!item.pinned
+                });
+
+                const getHistory = () => {
+                    try {
+                        const hist = localStorage.getItem(HISTORY_KEY);
+                        const parsed = hist ? JSON.parse(hist) : [];
+                        return Array.isArray(parsed) ? parsed.map(normalizeHistoryItem).filter(i => i.code) : [];
+                    } catch (e) {
+                        return [];
+                    }
+                };
+
+                const persistHistory = (hist) => {
+                    // 全部保留；釘選只影響排序，刪除只走手動叉叉
+                    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+                    historyList.value = hist;
+                };
+
+                const normalizePosition = (p) => {
+                    const kind = (p && (p.kind === 'holding' || p.kind === 'reduce')) ? p.kind : null;
+                    if (!kind) return null;
+                    return {
+                        kind,
+                        cost: String(p.cost ?? '').trim(),
+                        lots: String(p.lots ?? '').trim()
+                    };
+                };
+
+                const getPositions = () => {
+                    try {
+                        const raw = localStorage.getItem(POSITIONS_KEY);
+                        const parsed = raw ? JSON.parse(raw) : {};
+                        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+                        const out = {};
+                        Object.keys(parsed).forEach((code) => {
+                            const n = normalizePosition(parsed[code]);
+                            if (n && code) out[String(code).toUpperCase()] = n;
+                        });
+                        return out;
+                    } catch (e) {
+                        return {};
+                    }
+                };
+
+                const persistPositions = (map) => {
+                    localStorage.setItem(POSITIONS_KEY, JSON.stringify(map));
+                };
+
+                const savePosition = (code) => {
+                    if (applyingPosition) return;
+                    const upper = String(code || '').toUpperCase();
+                    if (!upper) return;
+                    const map = getPositions();
+                    const kind = positionKind.value;
+                    const cost = String(positionCost.value ?? '').trim();
+                    const lots = String(positionLots.value ?? '').trim();
+                    if (kind === 'none' || (!cost && !lots)) {
+                        if (map[upper]) {
+                            delete map[upper];
+                            persistPositions(map);
+                        }
+                        return;
+                    }
+                    map[upper] = {
+                        kind: kind === 'reduce' ? 'reduce' : 'holding',
+                        cost,
+                        lots: kind === 'holding' ? lots : ''
+                    };
+                    persistPositions(map);
+                };
+
+                const loadPosition = (code) => {
+                    const upper = String(code || '').toUpperCase();
+                    const pos = upper ? getPositions()[upper] : null;
+                    applyingPosition = true;
+                    if (pos) {
+                        positionKind.value = pos.kind;
+                        positionCost.value = pos.cost || '';
+                        positionLots.value = pos.lots || '';
+                    } else {
+                        positionKind.value = 'none';
+                        positionCost.value = '';
+                        positionLots.value = '';
+                    }
+                    nextTick(() => {
+                        applyingPosition = false;
+                        if (stockData.value?.stock_code) refreshPrompt();
+                    });
+                };
+
+                const schedulePositionSave = () => {
+                    if (applyingPosition) return;
+                    clearTimeout(positionSaveTimer);
+                    positionSaveTimer = setTimeout(() => {
+                        savePosition(stockData.value?.stock_code);
+                    }, 250);
+                };
+
+                const saveHistory = (code, name) => {
+                    const upper = code.toUpperCase();
+                    let hist = getHistory();
+                    const existing = hist.find(item => item.code === upper);
+                    hist = hist.filter(item => item.code !== upper);
+                    hist.unshift({ code: upper, name: name || existing?.name || '', pinned: !!existing?.pinned });
+                    persistHistory(hist);
+                };
+
+                const removeHistoryItem = (code) => {
+                    const upper = code.toUpperCase();
+                    persistHistory(getHistory().filter(item => item.code !== upper));
+                    compareSelected.value = compareSelected.value.filter(c => c !== upper);
+                };
+
+                const togglePin = (code) => {
+                    const upper = code.toUpperCase();
+                    const hist = getHistory().map(item => item.code === upper ? { ...item, pinned: !item.pinned } : item);
+                    persistHistory(hist);
+                };
+
+                const sortedHistory = computed(() => {
+                    const list = historyList.value || [];
+                    return [...list.filter(i => i.pinned), ...list.filter(i => !i.pinned)];
+                });
+
+                const searchFromHistory = (code) => {
+                    stockCode.value = code;
+                    performSearch(code);
+                };
+
+                // Prompt option helpers
+                const buildOptionParams = () => {
+                    const params = new URLSearchParams();
+                    params.set('strategy', strategy.value);
+                    params.set('position', positionKind.value);
+                    if (positionKind.value !== 'none' && positionCost.value) params.set('cost', positionCost.value);
+                    if (positionKind.value === 'holding' && positionLots.value) params.set('lots', positionLots.value);
+                    params.set('horizon', horizon.value);
+                    params.set('web', webToggle.value ? '1' : '0');
+                    return params;
+                };
+
+                const wantChipFor = (data) => !!(chipToggle.value && data?.is_taiwan_stock);
+
+                const promptSummary = computed(() => {
+                    const s = strategyOptions.find(o => o.id === strategy.value)?.label || '通用分析';
+                    const p = { none: '想買', holding: '已持有', reduce: '想減碼' }[positionKind.value] || '想買';
+                    const h = { day: '當日', swing: '波段', long: '中長線' }[horizon.value] || '波段';
+                    const extras = [];
+                    if (webToggle.value) extras.push('聯網');
+                    if (stockData.value?.has_chip) extras.push('含籌碼');
+                    return `提示詞：${s} · ${p} · ${h}${extras.length ? ' · ' + extras.join(' · ') : ''}`;
+                });
+
+                const performSearch = async (code) => {
+                    const trimmed = (code || '').trim();
+                    if (!trimmed) return;
+
+                    loading.value = true;
+                    error.value = '';
+                    chipError.value = '';
+                    showDashboard.value = false;
+                    chipLoading.value = false;
+                    chipRequestCode = '';
+                    logFormOpen.value = false;
+
+                    try {
+                        const params = buildOptionParams();
+                        params.set('code', trimmed);
+                        const response = await fetch(`/api/analyze?${params.toString()}`);
+                        const data = await response.json();
+
+                        if (!data.success) {
+                            throw new Error(data.error || '查詢失敗');
+                        }
+
+                        // Save history
+                        saveHistory(data.stock_code, data.stock_name);
+
+                        delete chipCache[data.stock_code];
+
+                        stockData.value = data;
+                        loadPosition(data.stock_code);
+                        showDashboard.value = true;
+
+                        // Always collapse chart initially on new search
+                        chartCollapsed.value = true;
+
+                        if (chipToggle.value && data.is_taiwan_stock) {
+                            loadChipData();
+                        }
+
+                    } catch (err) {
+                        error.value = err.message || '連線逾時或伺服器錯誤，請檢查代碼後重試。';
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const applyChipData = (chipRes) => {
+                    if (!stockData.value || stockData.value.stock_code !== chipRes.stock_code) return;
+                    stockData.value = {
+                        ...stockData.value,
+                        history: chipRes.history || stockData.value.history,
+                        prompt: chipRes.prompt || stockData.value.prompt,
+                        has_chip: true
+                    };
+                };
+
+                // 只重組提示詞，不重抓股價
+                const refreshPrompt = async () => {
+                    const data = stockData.value;
+                    if (!data?.stock_code) return;
+                    const seq = ++promptRequestSeq;
+                    promptLoading.value = true;
+                    try {
+                        const params = buildOptionParams();
+                        params.set('code', data.stock_code);
+                        params.set('chip', wantChipFor(data) ? '1' : '0');
+                        const response = await fetch(`/api/prompt?${params.toString()}`);
+                        const res = await response.json();
+                        if (seq !== promptRequestSeq) return; // 已有更新的請求
+                        if (!res.success) throw new Error(res.error || '重新組合提示詞失敗');
+                        if (stockData.value?.stock_code === res.stock_code) {
+                            stockData.value = { ...stockData.value, prompt: res.prompt, has_chip: !!res.has_chip };
+                        }
+                    } catch (err) {
+                        if (seq === promptRequestSeq) {
+                            error.value = err.message || '重新組合提示詞失敗';
+                        }
+                    } finally {
+                        if (seq === promptRequestSeq) promptLoading.value = false;
+                    }
+                };
+
+                const schedulePromptRefresh = () => {
+                    clearTimeout(promptDebounceTimer);
+                    promptDebounceTimer = setTimeout(refreshPrompt, 250);
+                };
+
+                const loadChipData = async () => {
+                    const data = stockData.value;
+                    if (!data?.is_taiwan_stock || !data.stock_code || !chipToggle.value) return;
+
+                    const cached = chipCache[data.stock_code];
+                    if (cached) {
+                        applyChipData(cached);
+                        refreshPrompt();
+                        return;
+                    }
+
+                    if (chipLoading.value && chipRequestCode === data.stock_code) return;
+
+                    chipLoading.value = true;
+                    chipError.value = '';
+                    chipRequestCode = data.stock_code;
+                    const requestedCode = data.stock_code;
+
+                    try {
+                        const params = buildOptionParams();
+                        params.set('code', requestedCode);
+                        const response = await fetch(`/api/chip?${params.toString()}`);
+                        const chipRes = await response.json();
+                        if (!chipRes.success) {
+                            throw new Error(chipRes.error || '載入法人籌碼失敗');
+                        }
+                        if (chipRes.chip_complete) {
+                            chipCache[requestedCode] = chipRes;
+                        }
+                        if (stockData.value?.stock_code === requestedCode && chipToggle.value) {
+                            applyChipData(chipRes);
+                        }
+                    } catch (err) {
+                        if (stockData.value?.stock_code === requestedCode) {
+                            chipError.value = err.message || '載入法人籌碼失敗';
+                        }
+                    } finally {
+                        if (chipRequestCode === requestedCode) {
+                            chipLoading.value = false;
+                            chipRequestCode = '';
+                        }
+                    }
+                };
+
+                // Computed properties for styling
+                const priceChangeClass = computed(() => {
+                    const change = stockData.value?.price_change || '';
+                    if (change.startsWith('+')) return 'price-change up';
+                    if (change.startsWith('-')) return 'price-change down';
+                    return 'price-change flat';
+                });
+
+                const showChipColumns = computed(() => {
+                    return !!(stockData.value?.is_taiwan_stock && chipToggle.value);
+                });
+
+
+
+                // Clipboard helpers
+                const copyText = (text, successMessage) => {
+                    if (!text) return Promise.resolve(false);
+                    return navigator.clipboard.writeText(text).then(() => true).catch(() => {
+                        alert('複製失敗，請手動全選複製。');
+                        return false;
+                    });
+                };
+
+                const copyMainPrompt = async () => {
+                    const ok = await copyText(stockData.value?.prompt);
+                    if (!ok) return;
+                    openLogForm();
+                    mainCopied.value = true;
+                    mainCopyText.value = '已複製，去貼給 AI';
+                    setTimeout(() => {
+                        mainCopied.value = false;
+                        mainCopyText.value = '複製給 AI';
+                    }, 2000);
+                };
+
+                const copyBasicPrompt = async () => {
+                    let text = stockData.value?.basic_prompt;
+                    if (!text) return;
+                    if (activeBasicTab.value === 'tech') {
+                        text = '以純技術分析幫我分析這支股票現在如何呢?\n\n' + text;
+                    }
+                    const ok = await copyText(text);
+                    if (!ok) return;
+                    copyBasicBtnText.value = '已複製 ✓';
+                    setTimeout(() => { copyBasicBtnText.value = '複製簡短版'; }, 2000);
+                };
+
+                // Compare mode
+                const isCompareSelected = (code) => compareSelected.value.includes(code.toUpperCase());
+
+                const enterCompareMode = () => {
+                    scanMode.value = false;
+                    scanSelected.value = [];
+                    compareMode.value = true;
+                    compareError.value = '';
+                    const current = stockData.value?.stock_code;
+                    compareSelected.value = current && historyList.value.some(i => i.code === current) ? [current] : [];
+                };
+
+                const exitCompareMode = () => {
+                    compareMode.value = false;
+                    compareSelected.value = [];
+                    compareError.value = '';
+                };
+
+                const toggleCompareSelect = (code) => {
+                    const upper = code.toUpperCase();
+                    if (isCompareSelected(upper)) {
+                        compareSelected.value = compareSelected.value.filter(c => c !== upper);
+                        return;
+                    }
+                    compareSelected.value = [...compareSelected.value, upper];
+                };
+
+                const runCompare = async () => {
+                    if (compareSelected.value.length < 2 || compareLoading.value) return;
+                    compareLoading.value = true;
+                    compareError.value = '';
+                    try {
+                        const params = buildOptionParams();
+                        params.set('codes', compareSelected.value.join(','));
+                        params.set('chip', chipToggle.value ? '1' : '0');
+                        const response = await fetch(`/api/compare?${params.toString()}`);
+                        const res = await response.json();
+                        if (!res.success) throw new Error(res.error || '比較失敗');
+                        comparePrompt.value = res.prompt;
+                        const ok = await copyText(res.prompt);
+                        if (res.failed && res.failed.length) {
+                            compareError.value = `已略過抓不到資料的：${res.failed.join(', ')}`;
+                        }
+                        if (ok) {
+                            mainCopied.value = true;
+                            mainCopyText.value = '比較提示詞已複製';
+                            compareNotice.value = `已複製 ${res.items.length} 支的比較提示詞，直接貼給 AI 即可。`;
+                            setTimeout(() => {
+                                mainCopied.value = false;
+                                mainCopyText.value = '複製給 AI';
+                                compareNotice.value = '';
+                            }, 4000);
+                        }
+                        if (stockData.value) advancedCollapsed.value = false;
+                        compareMode.value = false;
+                        compareSelected.value = [];
+                    } catch (err) {
+                        compareError.value = err.message || '比較失敗';
+                    } finally {
+                        compareLoading.value = false;
+                    }
+                };
+
+                // Goodinfo links
+                const goodinfoDetailUrl = computed(() =>
+                    stockData.value?.stock_code ? `https://goodinfo.tw/tw/StockDetail.asp?STOCK_ID=${encodeURIComponent(stockData.value.stock_code)}` : '#');
+                const goodinfoChartUrl = computed(() =>
+                    stockData.value?.stock_code ? `https://goodinfo.tw/tw/ShowK_Chart.asp?STOCK_ID=${encodeURIComponent(stockData.value.stock_code)}` : '#');
+
+                const openGoodinfoBoth = () => {
+                    if (!stockData.value?.stock_code) return;
+                    goodinfoNotice.value = '';
+                    // 兩個 window.open 必須在同一次點擊的同步流程裡，瀏覽器才會把它們算成同一個使用者手勢
+                    const w1 = window.open(goodinfoDetailUrl.value, '_blank', 'noopener');
+                    const w2 = window.open(goodinfoChartUrl.value, '_blank', 'noopener');
+                    if (!w1 || !w2) {
+                        goodinfoNotice.value = '瀏覽器擋住了其中一個分頁。請允許此網站的彈出視窗，或直接點右邊兩個連結。';
+                        setTimeout(() => { goodinfoNotice.value = ''; }, 6000);
+                    }
+                };
+
+                // Watchlist export / import
+                const exportWatchlist = () => {
+                    const positions = getPositions();
+                    const items = getHistory().map((item) => {
+                        const pos = positions[item.code];
+                        return pos ? { ...item, kind: pos.kind, cost: pos.cost, lots: pos.lots } : item;
+                    });
+                    const payload = { version: 1, exported_at: new Date().toISOString(), items };
+                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `watchlist-${new Date().toISOString().slice(0, 10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                };
+
+                const triggerImport = () => {
+                    if (importInput.value) importInput.value.click();
+                };
+
+                const importWatchlist = (event) => {
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        try {
+                            const parsed = JSON.parse(reader.result);
+                            const incoming = Array.isArray(parsed) ? parsed : (parsed.items || []);
+                            const normalized = incoming.map(normalizeHistoryItem).filter(i => i.code);
+                            if (!normalized.length) throw new Error('檔案裡沒有可用的自選股');
+                            // 同代碼以匯入為準
+                            const incomingCodes = new Set(normalized.map(i => i.code));
+                            const kept = getHistory().filter(i => !incomingCodes.has(i.code));
+                            persistHistory([...normalized, ...kept]);
+                            const positions = getPositions();
+                            incoming.forEach((raw) => {
+                                const code = String(raw.code || '').toUpperCase();
+                                const pos = normalizePosition(raw);
+                                if (code && pos) positions[code] = pos;
+                            });
+                            persistPositions(positions);
+                            if (stockData.value?.stock_code) loadPosition(stockData.value.stock_code);
+                        } catch (err) {
+                            alert(`匯入失敗：${err.message || '格式不正確'}`);
+                        } finally {
+                            event.target.value = '';
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+
+                const downloadJson = (payload, filename) => {
+                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                };
+
+                // ---------------- Strategy scan (watchlist lights) ----------------
+                const scanMode = ref(false);
+                const scanSelected = ref([]);
+                const scanResults = ref({});
+                const scanLoading = ref(false);
+                const scanError = ref('');
+                const scanMeta = ref('');
+                let lastScannedCodes = [];
+                let scanRequestSeq = 0;
+                let scanDebounceTimer = null;
+
+                const hasScanResults = computed(() => Object.keys(scanResults.value).length > 0);
+                const isScanSelected = (code) => scanSelected.value.includes(String(code || '').toUpperCase());
+
+                const enterScanMode = () => {
+                    if (strategy.value === 'general') {
+                        scanError.value = '先在下方選一個策略，才能掃描。';
+                        return;
+                    }
+                    compareMode.value = false;
+                    compareSelected.value = [];
+                    compareError.value = '';
+                    scanMode.value = true;
+                    scanError.value = '';
+                    scanSelected.value = [];
+                };
+
+                const exitScanMode = () => {
+                    scanMode.value = false;
+                    scanSelected.value = [];
+                    scanError.value = '';
+                };
+
+                const toggleScanSelect = (code) => {
+                    const upper = String(code || '').toUpperCase();
+                    if (!upper) return;
+                    if (isScanSelected(upper)) {
+                        scanSelected.value = scanSelected.value.filter(c => c !== upper);
+                        return;
+                    }
+                    scanSelected.value = [...scanSelected.value, upper];
+                };
+
+                const selectAllForScan = () => {
+                    scanSelected.value = sortedHistory.value
+                        .map(i => String(i.code || '').toUpperCase())
+                        .filter(Boolean);
+                };
+
+                const executeScan = async (codes) => {
+                    if (strategy.value === 'general') {
+                        scanError.value = '先在下方選一個策略，才能掃描。';
+                        return;
+                    }
+                    if (!codes.length || scanLoading.value) return;
+                    const fromSelection = scanMode.value;
+                    const seq = ++scanRequestSeq;
+                    scanLoading.value = true;
+                    scanError.value = '';
+                    try {
+                        const params = buildOptionParams();
+                        params.set('codes', codes.join(','));
+                        params.set('chip', chipToggle.value ? '1' : '0');
+                        const response = await fetch(`/api/scan?${params.toString()}`);
+                        const res = await response.json();
+                        if (seq !== scanRequestSeq) return;
+                        if (!res.success) throw new Error(res.error || '掃描失敗');
+                        const map = {};
+                        (res.items || []).forEach(item => { map[item.stock_code] = item; });
+                        scanResults.value = map;
+                        lastScannedCodes = codes.slice();
+                        const chipHint = (res.strategy === 'chip_follow' && !chipToggle.value) ? '，需開籌碼才能判斷' : '';
+                        scanMeta.value = `${strategyLabel(res.strategy)} · ${res.scanned_at}${chipHint}`;
+                        if (res.failed && res.failed.length) {
+                            scanError.value = `抓不到資料：${res.failed.join(', ')}`;
+                        }
+                        if (fromSelection) {
+                            scanMode.value = false;
+                            scanSelected.value = [];
+                        }
+                    } catch (err) {
+                        if (seq === scanRequestSeq) scanError.value = err.message || '掃描失敗';
+                    } finally {
+                        if (seq === scanRequestSeq) scanLoading.value = false;
+                    }
+                };
+
+                const runScan = () => executeScan(scanSelected.value.slice());
+
+                const scheduleRescan = () => {
+                    if (scanMode.value || !hasScanResults.value || !lastScannedCodes.length || strategy.value === 'general') return;
+                    clearTimeout(scanDebounceTimer);
+                    scanDebounceTimer = setTimeout(() => executeScan(lastScannedCodes.slice()), 300);
+                };
+
+                const scanTooltip = (code) => {
+                    const r = scanResults.value[code];
+                    if (!r) return '';
+                    const head = { fit: '符合', near: '接近', no: '不符', na: '無法判斷' }[r.status] || '';
+                    return r.reasons && r.reasons.length ? `${head}：${r.reasons.join('；')}` : head;
+                };
+
+                const priceDirClass = (change) => {
+                    if (!change) return '';
+                    if (change.startsWith('+')) return 'up';
+                    if (change.startsWith('-')) return 'down';
+                    return '';
+                };
+
+                const shortChange = (change) => {
+                    const m = /\(([^)]+)\)/.exec(change || '');
+                    return m ? m[1] : (change || '');
+                };
+
+                // ---------------- Institutional rank card ----------------
+                const rankCollapsed = ref(true);
+                const rankMarket = ref('twse');
+                const rankMetric = ref('foreign');
+                const rankSide = ref('buy');
+                const rankDays = ref(1);
+                const rankExcludeEtf = ref(true);
+                const rankLoading = ref(false);
+                const rankError = ref('');
+                const rankData = ref(null);
+                let rankRequestSeq = 0;
+                let rankLoadedKey = '';
+
+                const rankKey = () => `${rankMarket.value}|${rankMetric.value}|${rankDays.value}|${rankExcludeEtf.value}`;
+
+                const loadRank = async (force = false) => {
+                    const key = rankKey();
+                    if (!force && rankLoadedKey === key && rankData.value) return;
+                    const seq = ++rankRequestSeq;
+                    rankLoading.value = true;
+                    rankError.value = '';
+                    try {
+                        const params = new URLSearchParams({
+                            market: rankMarket.value,
+                            metric: rankMetric.value,
+                            days: String(rankDays.value),
+                            exclude_etf: rankExcludeEtf.value ? '1' : '0',
+                            limit: '20'
+                        });
+                        const response = await fetch(`/api/rank?${params.toString()}`);
+                        const res = await response.json();
+                        if (seq !== rankRequestSeq) return;
+                        if (!res.success) throw new Error(res.error || '排行載入失敗');
+                        rankData.value = res;
+                        rankLoadedKey = key;
+                    } catch (err) {
+                        if (seq === rankRequestSeq) rankError.value = err.message || '排行載入失敗';
+                    } finally {
+                        if (seq === rankRequestSeq) rankLoading.value = false;
+                    }
+                };
+
+                // Sector (industry) view of the rank card
+                const rankView = ref('stock');
+                const sectorSort = ref('chip');
+                const sectorLoading = ref(false);
+                const sectorError = ref('');
+                const sectorData = ref(null);
+                let sectorRequestSeq = 0;
+                let sectorLoadedKey = '';
+
+                const sectorKey = () => `${rankMarket.value}|${rankDays.value}|${sectorSort.value}`;
+
+                const loadSector = async (force = false) => {
+                    const key = sectorKey();
+                    if (!force && sectorLoadedKey === key && sectorData.value) return;
+                    const seq = ++sectorRequestSeq;
+                    sectorLoading.value = true;
+                    sectorError.value = '';
+                    try {
+                        const params = new URLSearchParams({
+                            market: rankMarket.value,
+                            days: String(rankDays.value),
+                            sort: sectorSort.value,
+                            limit: '30'
+                        });
+                        const response = await fetch(`/api/sector?${params.toString()}`);
+                        const res = await response.json();
+                        if (seq !== sectorRequestSeq) return;
+                        if (!res.success) throw new Error(res.error || '族群排行載入失敗');
+                        sectorData.value = res;
+                        sectorLoadedKey = key;
+                    } catch (err) {
+                        if (seq === sectorRequestSeq) sectorError.value = err.message || '族群排行載入失敗';
+                    } finally {
+                        if (seq === sectorRequestSeq) sectorLoading.value = false;
+                    }
+                };
+
+                const sectorRows = computed(() => sectorData.value?.rows || []);
+
+                const sectorDateLabel = computed(() => {
+                    const d = sectorData.value;
+                    if (!d) return '';
+                    if (d.days > 1) return `資料日期：${d.oldest_date} 至 ${d.latest_date}（法人為 ${d.days} 日合計，漲跌與成交為 ${d.latest_date}）`;
+                    return `資料日期：${d.latest_date}（收盤後更新）`;
+                });
+
+                const sectorDescription = computed(() => {
+                    const d = sectorData.value;
+                    if (!d) return '';
+                    const market = d.market === 'tpex' ? '上櫃' : '上市';
+                    const sort = { chip: '法人合計', change: '平均漲跌', turnover: '成交金額' }[d.sort] || '法人合計';
+                    return `${market} · 共 ${d.rows.length} 個族群，依${sort}排序`;
+                });
+
+                // Volume surge view of the rank card (Shioaji market snapshots)
+                const volumeMarket = ref('all');
+                const volumeMetric = ref('yesterday');
+                const volumeMinVolume = ref(500);
+                const volumeLoading = ref(false);
+                const volumeError = ref('');
+                const volumeData = ref(null);
+                let volumeRequestSeq = 0;
+                let volumeLoadedKey = '';
+                let volumeInflightKey = '';
+
+                // 量增可依產業 / 概念篩選；群組選項沿用 /api/group_rank 的摘要
+                const volumeKind = ref('none');      // none | industry | concept
+                const volumeGroup = ref('');
+                const volumeGroupOptions = ref([]);
+                const volumeGroupLoading = ref(false);
+                let volumeGroupOptionsKey = '';
+                let volumeGroupSeq = 0;
+
+                const loadVolumeGroupOptions = async () => {
+                    if (volumeKind.value === 'none') { volumeGroupOptions.value = []; return; }
+                    const key = `${volumeKind.value}|${volumeMarket.value}`;
+                    if (volumeGroupOptionsKey === key && volumeGroupOptions.value.length) return;
+                    const seq = ++volumeGroupSeq;
+                    volumeGroupLoading.value = true;
+                    try {
+                        const params = new URLSearchParams({ kind: volumeKind.value, market: volumeMarket.value, sort: 'amount', top_n: '1' });
+                        const response = await fetch(`/api/group_rank?${params.toString()}`);
+                        const res = await response.json();
+                        if (seq !== volumeGroupSeq) return;
+                        if (!res.success) throw new Error(res.error || '族群清單載入失敗');
+                        volumeGroupOptions.value = res.groups || [];
+                        volumeGroupOptionsKey = key;
+                        if (!volumeGroupOptions.value.some(g => g.group === volumeGroup.value)) {
+                            volumeGroup.value = volumeGroupOptions.value[0]?.group || '';
+                        }
+                    } catch (err) {
+                        if (seq === volumeGroupSeq) volumeError.value = err.message || '族群清單載入失敗';
+                    } finally {
+                        if (seq === volumeGroupSeq) volumeGroupLoading.value = false;
+                    }
+                };
+
+                const selectVolumeKind = (kind) => {
+                    if (volumeKind.value === kind) return;
+                    volumeGroup.value = '';
+                    volumeGroupOptions.value = [];
+                    volumeGroupOptionsKey = '';
+                    volumeKind.value = kind;
+                };
+
+                const volumeKey = () => `${volumeMarket.value}|${volumeMetric.value}|${volumeMinVolume.value}|${rankExcludeEtf.value}|${volumeKind.value}|${volumeGroup.value}`;
+
+                const loadVolume = async (force = false) => {
+                    if (volumeKind.value !== 'none') {
+                        await loadVolumeGroupOptions();
+                        if (!volumeGroup.value) return;   // 群組清單還沒好或是空的，等選到群組再查
+                    }
+                    const key = volumeKey();
+                    if (!force && volumeLoadedKey === key && volumeData.value) return;
+                    if (!force && volumeInflightKey === key) return;   // 群組選項載入時 watcher 可能再觸發一次
+                    volumeInflightKey = key;
+                    const seq = ++volumeRequestSeq;
+                    volumeLoading.value = true;
+                    volumeError.value = '';
+                    try {
+                        const params = new URLSearchParams({
+                            market: volumeMarket.value,
+                            metric: volumeMetric.value,
+                            min_volume: String(Math.max(0, Number(volumeMinVolume.value) || 0)),
+                            exclude_etf: rankExcludeEtf.value ? '1' : '0',
+                            limit: '100'
+                        });
+                        if (volumeKind.value !== 'none' && volumeGroup.value) {
+                            params.set('kind', volumeKind.value);
+                            params.set('group', volumeGroup.value);
+                        }
+                        const response = await fetch(`/api/volume_rank?${params.toString()}`);
+                        const res = await response.json();
+                        if (seq !== volumeRequestSeq) return;
+                        if (!res.success) throw new Error(res.error || '量增排行載入失敗');
+                        volumeData.value = res;
+                        volumeLoadedKey = key;
+                    } catch (err) {
+                        if (seq === volumeRequestSeq) volumeError.value = err.message || '量增排行載入失敗';
+                    } finally {
+                        if (seq === volumeRequestSeq) { volumeLoading.value = false; volumeInflightKey = ''; }
+                    }
+                };
+
+                const volumeRows = computed(() => volumeData.value?.rows || []);
+
+                const volumeDateLabel = computed(() => {
+                    const d = volumeData.value;
+                    if (!d) return '';
+                    return `快照時間：${d.data_time}（${d.from_cache ? '快取，' : ''}取得於 ${d.fetched_at}）`;
+                });
+
+                const volumeDescription = computed(() => {
+                    const d = volumeData.value;
+                    if (!d) return '';
+                    const market = { all: '全市場（上市 + 上櫃）', twse: '上市', tpex: '上櫃' }[d.market] || '全市場';
+                    const metric = d.metric === 'avg5' ? '今日量 / 近 5 日均量' : '今日量 / 昨量';
+                    let baseline = '';
+                    if (d.metric === 'avg5' && d.baseline_dates) {
+                        const parts = Object.entries(d.baseline_dates)
+                            .filter(([, ds]) => ds && ds.length)
+                            .map(([m, ds]) => `${m === 'tpex' ? '上櫃' : '上市'} ${ds[ds.length - 1]} 至 ${ds[0]}`);
+                        if (parts.length) baseline = `，均量日期：${parts.join('；')}`;
+                    }
+                    const scope = d.group
+                        ? `${d.kind === 'concept' ? '概念' : '產業'}「${d.group}」${d.group_size} 檔中符合 ${d.matched} 檔`
+                        : `共掃描 ${d.total_scanned} 檔，符合 ${d.matched} 檔`;
+                    return `${market} · ${scope}，依「${metric}」排序，最多列 ${d.rows.length} 檔，今日至少 ${d.min_volume} 張${d.exclude_etf ? ' · 已排除 ETF' : ''}${baseline}`;
+                });
+
+                // Grouped stock view of the rank card (industry / concept, top N by turnover per group)
+                const groupKind = ref('industry');
+                const groupMarket = ref('all');
+                const groupSort = ref('amount');
+                const groupSelected = ref('');   // 空字串 = 讓後端選排序後第一組
+                const groupLoading = ref(false);
+                const groupError = ref('');
+                const groupData = ref(null);
+                let groupRequestSeq = 0;
+                let groupLoadedKey = '';
+
+                const groupKey = () => `${groupKind.value}|${groupMarket.value}|${groupSort.value}|${groupSelected.value}`;
+
+                const loadGroup = async (force = false) => {
+                    const key = groupKey();
+                    if (!force && groupLoadedKey === key && groupData.value) return;
+                    const seq = ++groupRequestSeq;
+                    groupLoading.value = true;
+                    groupError.value = '';
+                    try {
+                        const params = new URLSearchParams({
+                            kind: groupKind.value,
+                            market: groupMarket.value,
+                            sort: groupSort.value,
+                            group: groupSelected.value || '',
+                            top_n: '30'
+                        });
+                        const response = await fetch(`/api/group_rank?${params.toString()}`);
+                        const res = await response.json();
+                        if (seq !== groupRequestSeq) return;
+                        if (!res.success) throw new Error(res.error || '分類排行載入失敗');
+                        groupData.value = res;
+                        // 後端可能退回第一組；同步下拉選單並更新 key，避免 watcher 再打一次
+                        groupSelected.value = res.selected?.group || '';
+                        groupLoadedKey = groupKey();
+                    } catch (err) {
+                        if (seq === groupRequestSeq) groupError.value = err.message || '分類排行載入失敗';
+                    } finally {
+                        if (seq === groupRequestSeq) groupLoading.value = false;
+                    }
+                };
+
+                const groupRows = computed(() => groupData.value?.groups || []);
+                const groupSelectedData = computed(() => groupData.value?.selected || null);
+                const groupSelectedIndex = computed(() => {
+                    const sel = groupSelectedData.value;
+                    if (!sel) return -1;
+                    return groupRows.value.findIndex(g => g.group === sel.group);
+                });
+                const selectGroupKind = (kind) => {
+                    if (groupKind.value === kind) return;
+                    groupSelected.value = '';   // 產業與概念的群組名稱不同，換類型就重選
+                    groupKind.value = kind;
+                };
+
+                const groupDateLabel = computed(() => {
+                    const d = groupData.value;
+                    if (!d) return '';
+                    return `快照時間：${d.data_time}（${d.from_cache ? '快取，' : ''}取得於 ${d.fetched_at}）`;
+                });
+
+                const groupDescription = computed(() => {
+                    const d = groupData.value;
+                    if (!d) return '';
+                    const market = { all: '全市場（上市 + 上櫃）', twse: '上市', tpex: '上櫃' }[d.market] || '全市場';
+                    const kind = d.kind === 'concept' ? '概念股' : '官方產業別';
+                    const sort = d.sort === 'change' ? '平均漲跌' : '成交金額';
+                    return `${market} · ${kind} 共 ${d.total_groups} 組、${d.total_stocks} 檔，群組依「${sort}」排序`;
+                });
+
+                const rankTitle = computed(() => ({
+                    sector: '族群輪動排行', volume: '成交量大增排行', group: '族群分類股票排行'
+                }[rankView.value] || '法人籌碼排行'));
+
+                const rankHeaderLabel = computed(() => {
+                    if (rankView.value === 'sector') return sectorData.value ? sectorDateLabel.value : '';
+                    if (rankView.value === 'volume') return volumeData.value ? volumeDateLabel.value : '';
+                    if (rankView.value === 'group') return groupData.value ? groupDateLabel.value : '';
+                    return rankData.value ? rankDateLabel.value : '';
+                });
+
+                const loadActiveRank = (force = false) => {
+                    if (rankView.value === 'sector') loadSector(force);
+                    else if (rankView.value === 'volume') loadVolume(force);
+                    else if (rankView.value === 'group') loadGroup(force);
+                    else loadRank(force);
+                };
+
+                const toggleRank = () => {
+                    rankCollapsed.value = !rankCollapsed.value;
+                    if (!rankCollapsed.value) loadActiveRank();
+                };
+
+                const rankRows = computed(() => {
+                    const d = rankData.value;
+                    if (!d) return [];
+                    return rankSide.value === 'sell' ? (d.sell || []) : (d.rows || []);
+                });
+
+                const rankDateLabel = computed(() => {
+                    const d = rankData.value;
+                    if (!d) return '';
+                    if (d.days > 1) return `資料日期：${d.oldest_date} 至 ${d.latest_date}（${d.days} 個交易日，收盤後更新）`;
+                    return `資料日期：${d.latest_date}（收盤後更新）`;
+                });
+
+                const rankDescription = computed(() => {
+                    const d = rankData.value;
+                    if (!d) return '';
+                    const market = d.market === 'tpex' ? '上櫃' : '上市';
+                    const metric = { foreign: '外資', trust: '投信', both: '外資與投信同步' }[d.metric] || '外資';
+                    const side = rankSide.value === 'sell' ? '賣超' : '買超';
+                    const span = d.days > 1 ? `連續 ${d.days} 個交易日每日皆${side}，依合計排序` : `單日${side}`;
+                    return `${market} · ${metric}${span}${d.exclude_etf ? ' · 已排除 ETF' : ''}`;
+                });
+
+                const isInWatchlist = (code) => historyList.value.some(i => i.code === String(code || '').toUpperCase());
+
+                const addToWatchlist = (code, name) => {
+                    const upper = String(code || '').toUpperCase();
+                    if (!upper) return;
+                    const existing = getHistory().find(i => i.code === upper);
+                    if (existing) {
+                        if (!existing.pinned) togglePin(upper);
+                        return;
+                    }
+                    saveHistory(upper, name || '');
+                    togglePin(upper);
+                };
+
+                // ---------------- Decision log ----------------
+                const LOG_KEY = 'decision_log';
+                const LOG_LIMIT = 500;
+                const LOG_NOTE_LIMIT = 2000;
+                const LOG_SHOW = 30;
+                const decisionLog = ref([]);
+                const logCollapsed = ref(true);
+                const logFormOpen = ref(false);
+                const logImportInput = ref(null);
+                const logActionOptions = [
+                    { id: 'buy', label: '買進' },
+                    { id: 'watch', label: '觀望' },
+                    { id: 'hold', label: '續抱' },
+                    { id: 'add', label: '加碼' },
+                    { id: 'reduce', label: '減碼' },
+                    { id: 'sell', label: '賣出' }
+                ];
+
+                const emptyDraft = () => ({
+                    code: '', name: '', date: '', price: '', strategy: 'general', position: 'none',
+                    action: 'watch', entry: '', stop: '', target: '', note: ''
+                });
+                const logDraft = reactive(emptyDraft());
+
+                const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+                const todayStr = () => {
+                    const d = new Date();
+                    const pad = (n) => String(n).padStart(2, '0');
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                };
+
+                const normalizeLogEntry = (e) => ({
+                    id: String(e.id || genId()),
+                    code: String(e.code || '').toUpperCase(),
+                    name: e.name || '',
+                    date: e.date || '',
+                    price: e.price ?? '',
+                    strategy: e.strategy || 'general',
+                    position: e.position || 'none',
+                    action: e.action || 'watch',
+                    entry: e.entry ?? '',
+                    stop: e.stop ?? '',
+                    target: e.target ?? '',
+                    note: String(e.note || '').slice(0, LOG_NOTE_LIMIT),
+                    review: ['hit', 'miss'].includes(e.review) ? e.review : null
+                });
+
+                const getLog = () => {
+                    try {
+                        const raw = localStorage.getItem(LOG_KEY);
+                        const parsed = raw ? JSON.parse(raw) : [];
+                        return Array.isArray(parsed) ? parsed.map(normalizeLogEntry).filter(e => e.code) : [];
+                    } catch (e) {
+                        return [];
+                    }
+                };
+
+                const persistLog = (items) => {
+                    const trimmed = items.slice(0, LOG_LIMIT);
+                    localStorage.setItem(LOG_KEY, JSON.stringify(trimmed));
+                    decisionLog.value = trimmed;
+                };
+
+                const strategyLabel = (id) => strategyOptions.find(o => o.id === id)?.label || id || '-';
+                const actionLabel = (id) => logActionOptions.find(o => o.id === id)?.label || id || '-';
+                const reviewLabel = (r) => r === 'hit' ? '命中' : r === 'miss' ? '落空' : '未定';
+
+                const defaultAction = () => {
+                    if (positionKind.value === 'holding') return 'hold';
+                    if (positionKind.value === 'reduce') return 'reduce';
+                    return 'watch';
+                };
+
+                const openLogForm = () => {
+                    const d = stockData.value;
+                    if (!d?.stock_code) return;
+                    Object.assign(logDraft, emptyDraft(), {
+                        code: d.stock_code,
+                        name: d.stock_name || '',
+                        date: todayStr(),
+                        price: d.current_price || '',
+                        strategy: strategy.value,
+                        position: positionKind.value,
+                        action: defaultAction()
+                    });
+                    logFormOpen.value = true;
+                };
+
+                const saveLogEntry = () => {
+                    if (!logDraft.code) return;
+                    const entry = normalizeLogEntry({ ...logDraft, id: genId(), review: null });
+                    persistLog([entry, ...getLog()]);
+                    logFormOpen.value = false;
+                };
+
+                const removeLogEntry = (id) => {
+                    persistLog(getLog().filter(e => e.id !== id));
+                };
+
+                const cycleReview = (id) => {
+                    const next = (r) => r === 'hit' ? 'miss' : r === 'miss' ? null : 'hit';
+                    persistLog(getLog().map(e => e.id === id ? { ...e, review: next(e.review) } : e));
+                };
+
+                const recentLog = computed(() => decisionLog.value.slice(0, LOG_SHOW));
+
+                const logStats = computed(() => {
+                    const groups = {};
+                    decisionLog.value.forEach(e => {
+                        const g = groups[e.strategy] || (groups[e.strategy] = { strategy: e.strategy, total: 0, hit: 0, miss: 0 });
+                        g.total += 1;
+                        if (e.review === 'hit') g.hit += 1;
+                        if (e.review === 'miss') g.miss += 1;
+                    });
+                    return Object.values(groups).map(g => {
+                        const reviewed = g.hit + g.miss;
+                        return {
+                            ...g,
+                            label: strategyLabel(g.strategy),
+                            reviewed,
+                            pending: g.total - reviewed,
+                            hitRate: reviewed ? Math.round(g.hit / reviewed * 100) : 0
+                        };
+                    }).sort((a, b) => b.total - a.total);
+                });
+
+                const logCountFor = (code) => {
+                    const upper = String(code || '').toUpperCase();
+                    return decisionLog.value.filter(e => e.code === upper).length;
+                };
+                const currentLogCount = computed(() => stockData.value?.stock_code ? logCountFor(stockData.value.stock_code) : 0);
+
+                const exportLog = () => {
+                    downloadJson(
+                        { version: 1, exported_at: new Date().toISOString(), items: getLog() },
+                        `decision-log-${todayStr()}.json`
+                    );
+                };
+
+                const triggerLogImport = () => {
+                    if (logImportInput.value) logImportInput.value.click();
+                };
+
+                const importLog = (event) => {
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        try {
+                            const parsed = JSON.parse(reader.result);
+                            const incoming = Array.isArray(parsed) ? parsed : (parsed.items || []);
+                            const normalized = incoming.map(normalizeLogEntry).filter(e => e.code);
+                            if (!normalized.length) throw new Error('檔案裡沒有可用的紀錄');
+                            const incomingIds = new Set(normalized.map(e => e.id));
+                            const kept = getLog().filter(e => !incomingIds.has(e.id));
+                            const merged = [...normalized, ...kept].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                            persistLog(merged);
+                            logCollapsed.value = false;
+                        } catch (err) {
+                            alert(`匯入失敗：${err.message || '格式不正確'}`);
+                        } finally {
+                            event.target.value = '';
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+
+                // Table cell styling helpers
+                const getPriceCellClass = (close, open) => {
+                    const closeNum = parseFloat(close);
+                    const openNum = parseFloat(open);
+                    if (closeNum > openNum) return 'price-cell price-up';
+                    if (closeNum < openNum) return 'price-cell price-down';
+                    return 'price-cell';
+                };
+
+                const getChipCellClass = (val) => {
+                    const valNum = parseFloat(val);
+                    if (valNum > 0) return 'price-cell price-up';
+                    if (valNum < 0) return 'price-cell price-down';
+                    return 'price-cell';
+                };
+
+                const getRelationClass = (relation) => {
+                    if (!relation) return 'indicator-badge';
+                    return relation.includes('之上') ? 'indicator-badge badge-up' : 'indicator-badge badge-down';
+                };
+
+                const getRsiClass = (status) => {
+                    if (!status) return 'indicator-badge';
+                    if (status.includes('超買')) return 'indicator-badge badge-rsi-overbought';
+                    if (status.includes('超賣')) return 'indicator-badge badge-rsi-oversold';
+                    return 'indicator-badge badge-rsi-neutral';
+                };
+
+                // K-Line Chart Toggling & Drawing
+                const toggleChart = () => {
+                    chartCollapsed.value = !chartCollapsed.value;
+                    if (!chartCollapsed.value) {
+                        nextTick(() => {
+                            setTimeout(() => {
+                                if (stockData.value?.chart_history) {
+                                    renderStockChart(stockData.value.chart_history);
+                                }
+                            }, 50);
+                        });
+                    }
+                };
+
+                // Watchers for colorsEnabled & chipEnabled settings
+                watch(chipToggle, (newVal) => {
+                    localStorage.setItem('chip_enabled', newVal);
+                    if (newVal) {
+                        loadChipData();
+                    } else {
+                        chipError.value = '';
+                        refreshPrompt();
+                    }
+                    scheduleRescan();
+                });
+
+                // Strategy preferences: persist + rebuild prompt
+                watch(strategy, (v) => {
+                    localStorage.setItem('pref_strategy', v);
+                    refreshPrompt();
+                    if (v === 'general') {
+                        scanResults.value = {};
+                        scanMeta.value = '';
+                        scanError.value = '';
+                        scanMode.value = false;
+                        scanSelected.value = [];
+                    } else {
+                        scheduleRescan();
+                    }
+                });
+                watch(positionKind, () => {
+                    if (!applyingPosition) {
+                        schedulePositionSave();
+                        refreshPrompt();
+                    }
+                });
+                watch(horizon, (v) => { localStorage.setItem('pref_horizon', v); refreshPrompt(); });
+                watch(webToggle, (v) => { localStorage.setItem('web_enabled', v); refreshPrompt(); });
+                watch(positionCost, () => {
+                    if (!applyingPosition) {
+                        schedulePositionSave();
+                        schedulePromptRefresh();
+                        if (strategy.value === 'risk_check') scheduleRescan();
+                    }
+                });
+                watch(positionLots, () => {
+                    if (!applyingPosition) {
+                        schedulePositionSave();
+                        schedulePromptRefresh();
+                    }
+                });
+                watch(advancedCollapsed, (v) => { localStorage.setItem('advanced_collapsed', v); });
+
+                // Rank card: reload when a filter changes while expanded
+                const persistRankPrefs = () => {
+                    localStorage.setItem('rank_prefs', JSON.stringify({
+                        market: rankMarket.value, metric: rankMetric.value, days: rankDays.value, excludeEtf: rankExcludeEtf.value,
+                        view: rankView.value, sectorSort: sectorSort.value,
+                        volumeMarket: volumeMarket.value, volumeMetric: volumeMetric.value, volumeMinVolume: volumeMinVolume.value,
+                        groupKind: groupKind.value, groupMarket: groupMarket.value, groupSort: groupSort.value, groupSelected: groupSelected.value,
+                        volumeKind: volumeKind.value, volumeGroup: volumeGroup.value
+                    }));
+                };
+                watch([rankMarket, rankDays], () => {
+                    persistRankPrefs();
+                    if (!rankCollapsed.value && rankView.value !== 'volume' && rankView.value !== 'group') loadActiveRank();
+                });
+                watch([groupKind, groupMarket, groupSort, groupSelected], () => {
+                    persistRankPrefs();
+                    if (!rankCollapsed.value && rankView.value === 'group') loadGroup();
+                });
+                watch([rankMetric], () => {
+                    persistRankPrefs();
+                    if (!rankCollapsed.value && rankView.value === 'stock') loadRank();
+                });
+                watch([rankExcludeEtf], () => {
+                    persistRankPrefs();
+                    if (!rankCollapsed.value && rankView.value === 'stock') loadRank();
+                    if (!rankCollapsed.value && rankView.value === 'volume') loadVolume();
+                });
+                watch([rankView, sectorSort], () => {
+                    persistRankPrefs();
+                    if (!rankCollapsed.value) loadActiveRank();
+                });
+                watch([volumeMarket, volumeMetric, volumeKind, volumeGroup], () => {
+                    persistRankPrefs();
+                    if (!rankCollapsed.value && rankView.value === 'volume') loadVolume();
+                });
+                let volumeMinTimer = null;
+                watch(volumeMinVolume, () => {
+                    persistRankPrefs();
+                    clearTimeout(volumeMinTimer);
+                    volumeMinTimer = setTimeout(() => {
+                        if (!rankCollapsed.value && rankView.value === 'volume') loadVolume();
+                    }, 500);
+                });
+                watch(rankCollapsed, (v) => { localStorage.setItem('rank_collapsed', v); });
+                watch(logCollapsed, (v) => { localStorage.setItem('log_collapsed', v); });
+
+                watch(colorToggle, (newVal) => {
+                    localStorage.setItem('colors_enabled', newVal);
+                    if (newVal) {
+                        document.body.classList.add('show-colors');
+                    } else {
+                        document.body.classList.remove('show-colors');
+                    }
+                    if (stockData.value?.chart_history && !chartCollapsed.value) {
+                        renderStockChart(stockData.value.chart_history);
+                    }
+                });
+
+                watch(linesToggle, (newVal) => {
+                    localStorage.setItem('lines_enabled', newVal);
+                    if (stockData.value?.chart_history && !chartCollapsed.value) {
+                        renderStockChart(stockData.value.chart_history);
+                    }
+                });
+
+                onMounted(() => {
+                    // Load settings
+                    chipToggle.value = localStorage.getItem('chip_enabled') === 'true';
+                    colorToggle.value = localStorage.getItem('colors_enabled') === 'true';
+                    linesToggle.value = localStorage.getItem('lines_enabled') !== 'false';
+                    webToggle.value = localStorage.getItem('web_enabled') !== 'false';
+
+                    const savedStrategy = localStorage.getItem('pref_strategy');
+                    if (strategyOptions.some(o => o.id === savedStrategy)) strategy.value = savedStrategy;
+                    const savedHorizon = localStorage.getItem('pref_horizon');
+                    if (['day', 'swing', 'long'].includes(savedHorizon)) horizon.value = savedHorizon;
+                    advancedCollapsed.value = localStorage.getItem('advanced_collapsed') === 'true';
+                    if (colorToggle.value) {
+                        document.body.classList.add('show-colors');
+                    } else {
+                        document.body.classList.remove('show-colors');
+                    }
+
+                    // Initial history
+                    historyList.value = getHistory();
+                    decisionLog.value = getLog();
+                    logCollapsed.value = localStorage.getItem('log_collapsed') !== 'false';
+
+                    // Rank card preferences
+                    try {
+                        const prefs = JSON.parse(localStorage.getItem('rank_prefs') || '{}');
+                        if (['twse', 'tpex'].includes(prefs.market)) rankMarket.value = prefs.market;
+                        if (['foreign', 'trust', 'both'].includes(prefs.metric)) rankMetric.value = prefs.metric;
+                        if ([1, 3, 5].includes(prefs.days)) rankDays.value = prefs.days;
+                        if (typeof prefs.excludeEtf === 'boolean') rankExcludeEtf.value = prefs.excludeEtf;
+                        if (['stock', 'sector', 'volume', 'group'].includes(prefs.view)) rankView.value = prefs.view;
+                        if (['industry', 'concept'].includes(prefs.groupKind)) groupKind.value = prefs.groupKind;
+                        if (['all', 'twse', 'tpex'].includes(prefs.groupMarket)) groupMarket.value = prefs.groupMarket;
+                        if (['amount', 'change'].includes(prefs.groupSort)) groupSort.value = prefs.groupSort;
+                        if (typeof prefs.groupSelected === 'string') groupSelected.value = prefs.groupSelected;
+                        if (['none', 'industry', 'concept'].includes(prefs.volumeKind)) volumeKind.value = prefs.volumeKind;
+                        if (typeof prefs.volumeGroup === 'string') volumeGroup.value = prefs.volumeGroup;
+                        if (['chip', 'change', 'turnover'].includes(prefs.sectorSort)) sectorSort.value = prefs.sectorSort;
+                        if (['all', 'twse', 'tpex'].includes(prefs.volumeMarket)) volumeMarket.value = prefs.volumeMarket;
+                        if (['yesterday', 'avg5'].includes(prefs.volumeMetric)) volumeMetric.value = prefs.volumeMetric;
+                        if (Number.isFinite(prefs.volumeMinVolume) && prefs.volumeMinVolume >= 0) volumeMinVolume.value = prefs.volumeMinVolume;
+                    } catch (e) { /* ignore */ }
+                    rankCollapsed.value = localStorage.getItem('rank_collapsed') !== 'false';
+                    if (!rankCollapsed.value) loadActiveRank();
+
+                    window.addEventListener('resize', () => {
+                        if (stockChartInstance) {
+                            stockChartInstance.resize();
+                            if (stockData.value?.chart_history && !chartCollapsed.value) {
+                                renderStockChart(stockData.value.chart_history);
+                            }
+                        }
+                    });
+                });
+
+                // ECharts implementation
+                const renderStockChart = (chartData) => {
+                    const chartDom = document.getElementById('stockChart');
+                    if (!chartDom) return;
+                    if (!stockChartInstance) {
+                        stockChartInstance = echarts.init(chartDom, 'dark', { renderer: 'canvas' });
+                    }
+
+
+                    const dates = chartData.map(item => item.date);
+                    const candlestickData = chartData.map(item => [item.open, item.close, item.low, item.high]);
+                    const ma5Data = chartData.map(item => item.ma5);
+                    const ma20Data = chartData.map(item => item.ma20);
+                    const ma60Data = chartData.map(item => item.ma60);
+                    const rsiData = chartData.map(item => item.rsi14);
+
+                    const upColor = '#f43f5e';
+                    const downColor = '#10b981';
+
+                    const data = stockData.value;
+                    const upperValShort = data?.upper_neckline_short ? parseFloat(data.upper_neckline_short) : null;
+                    const lowerValShort = data?.lower_neckline_short ? parseFloat(data.lower_neckline_short) : null;
+                    const upperValMid = data?.upper_neckline_mid ? parseFloat(data.upper_neckline_mid) : null;
+                    const lowerValMid = data?.lower_neckline_mid ? parseFloat(data.lower_neckline_mid) : null;
+
+                    // Rising trendline data calculation
+                    const risingTrendData = new Array(dates.length).fill(null);
+                    if (data?.trendline_rising && data.trendline_rising.start && data.trendline_rising.end) {
+                        const startDateStr = data.trendline_rising.start.date;
+                        const startIdx = dates.indexOf(startDateStr);
+                        const endIdx = dates.length - 1;
+                        if (startIdx !== -1 && endIdx > startIdx) {
+                            const p1 = data.trendline_rising.start.price;
+                            const p2 = data.trendline_rising.end.price;
+                            const slope = (p2 - p1) / (endIdx - startIdx);
+                            for (let i = startIdx; i <= endIdx; i++) {
+                                risingTrendData[i] = p1 + slope * (i - startIdx);
+                            }
+                        }
+                    }
+
+                    // Falling trendline data calculation
+                    const fallingTrendData = new Array(dates.length).fill(null);
+                    if (data?.trendline_falling && data.trendline_falling.start && data.trendline_falling.end) {
+                        const startDateStr = data.trendline_falling.start.date;
+                        const startIdx = dates.indexOf(startDateStr);
+                        const endIdx = dates.length - 1;
+                        if (startIdx !== -1 && endIdx > startIdx) {
+                            const p1 = data.trendline_falling.start.price;
+                            const p2 = data.trendline_falling.end.price;
+                            const slope = (p2 - p1) / (endIdx - startIdx);
+                            for (let i = startIdx; i <= endIdx; i++) {
+                                fallingTrendData[i] = p1 + slope * (i - startIdx);
+                            }
+                        }
+                    }
+
+                    const allSRAround = [];
+                    const mainLegendData = ['K線', 'MA5', 'MA20', 'MA60', 'RSI-14'];
+                    const linesLegendData = [];
+                    const extraSeries = [];
+
+                    if (linesToggle.value) {
+                        [upperValShort, lowerValShort, upperValMid, lowerValMid].forEach(v => {
+                            if (v && !isNaN(v)) allSRAround.push(v);
+                        });
+                        risingTrendData.forEach(v => {
+                            if (v !== null && !isNaN(v)) allSRAround.push(v);
+                        });
+                        fallingTrendData.forEach(v => {
+                            if (v !== null && !isNaN(v)) allSRAround.push(v);
+                        });
+
+                        if (upperValShort && !isNaN(upperValShort)) {
+                            linesLegendData.push('短期壓力 (5日)');
+                            extraSeries.push({
+                                name: '短期壓力 (5日)',
+                                type: 'line',
+                                data: new Array(dates.length).fill(upperValShort),
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                showSymbol: false,
+                                lineStyle: { color: 'rgba(255, 255, 255, 0.25)', type: 'dashed', width: 1.2 },
+                                itemStyle: { color: 'rgba(255, 255, 255, 0.25)' },
+                                endLabel: { show: false },
+                                emphasis: {
+                                    focus: 'series'
+                                }
+                            });
+                        }
+
+                        if (upperValMid && !isNaN(upperValMid)) {
+                            linesLegendData.push('中期壓力 (20日)');
+                            extraSeries.push({
+                                name: '中期壓力 (20日)',
+                                type: 'line',
+                                data: new Array(dates.length).fill(upperValMid),
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                showSymbol: false,
+                                lineStyle: { color: 'rgba(255, 255, 255, 0.5)', type: 'dashed', width: 1.8 },
+                                itemStyle: { color: 'rgba(255, 255, 255, 0.5)' },
+                                endLabel: { show: false },
+                                emphasis: {
+                                    focus: 'series'
+                                }
+                            });
+                        }
+
+                        if (lowerValShort && !isNaN(lowerValShort)) {
+                            linesLegendData.push('短期支撐 (5日)');
+                            extraSeries.push({
+                                name: '短期支撐 (5日)',
+                                type: 'line',
+                                data: new Array(dates.length).fill(lowerValShort),
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                showSymbol: false,
+                                lineStyle: { color: 'rgba(255, 255, 255, 0.25)', type: 'dashed', width: 1.2 },
+                                itemStyle: { color: 'rgba(255, 255, 255, 0.25)' },
+                                endLabel: { show: false },
+                                emphasis: {
+                                    focus: 'series'
+                                }
+                            });
+                        }
+
+                        if (lowerValMid && !isNaN(lowerValMid)) {
+                            linesLegendData.push('中期支撐 (20日)');
+                            extraSeries.push({
+                                name: '中期支撐 (20日)',
+                                type: 'line',
+                                data: new Array(dates.length).fill(lowerValMid),
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                showSymbol: false,
+                                lineStyle: { color: 'rgba(255, 255, 255, 0.5)', type: 'dashed', width: 1.8 },
+                                itemStyle: { color: 'rgba(255, 255, 255, 0.5)' },
+                                endLabel: { show: false },
+                                emphasis: {
+                                    focus: 'series'
+                                }
+                            });
+                        }
+
+                        if (data?.trendline_rising && data.trendline_rising.start && data.trendline_rising.end) {
+                            linesLegendData.push('上升趨勢線 (支撐)');
+                            extraSeries.push({
+                                name: '上升趨勢線 (支撐)',
+                                type: 'line',
+                                data: risingTrendData,
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                showSymbol: false,
+                                lineStyle: { width: 2, color: '#ffffff', type: 'solid' },
+                                itemStyle: { color: '#ffffff' },
+                                endLabel: { show: false },
+                                emphasis: {
+                                    focus: 'series'
+                                }
+                            });
+                        }
+
+                        if (data?.trendline_falling && data.trendline_falling.start && data.trendline_falling.end) {
+                            linesLegendData.push('下降趨勢線 (壓力)');
+                            extraSeries.push({
+                                name: '下降趨勢線 (壓力)',
+                                type: 'line',
+                                data: fallingTrendData,
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                showSymbol: false,
+                                lineStyle: { width: 2, color: '#ffffff', type: 'solid' },
+                                itemStyle: { color: '#ffffff' },
+                                endLabel: { show: false },
+                                emphasis: {
+                                    focus: 'series'
+                                }
+                            });
+                        }
+                    }
+
+                    const isMobile = window.innerWidth < 768;
+                    let gridTop = '55px';
+                    let gridHeight = '245px';
+
+                    const legendConfigs = [
+                        {
+                            data: mainLegendData,
+                            inactiveColor: '#4b5563',
+                            textStyle: { color: '#9ca3af', fontFamily: 'inherit', fontSize: 11 },
+                            itemGap: 8,
+                            top: '5px'
+                        }
+                    ];
+
+                    if (linesToggle.value && linesLegendData.length > 0) {
+                        gridTop = isMobile ? '120px' : '80px';
+                        gridHeight = isMobile ? '180px' : '220px';
+                        legendConfigs.push({
+                            data: linesLegendData,
+                            inactiveColor: '#4b5563',
+                            textStyle: { color: '#9ca3af', fontFamily: 'inherit', fontSize: 11 },
+                            itemGap: 8,
+                            top: '35px'
+                        });
+                    }
+
+                    const volumeData = chartData.map(item => {
+                        const isUp = item.close >= item.open;
+                        return {
+                            value: item.volume,
+                            itemStyle: {
+                                color: isUp ? upColor : downColor
+                            }
+                        };
+                    });
+
+                    const option = {
+                        backgroundColor: 'transparent',
+                        title: { show: false },
+                        legend: legendConfigs,
+                        tooltip: {
+                            trigger: 'axis',
+                            axisPointer: {
+                                type: 'cross',
+                                link: { xAxisIndex: 'all' },
+                                label: { backgroundColor: '#1f2937', color: '#f3f4f6' }
+                            },
+                            backgroundColor: 'rgba(19, 22, 37, 0.95)',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            textStyle: { color: '#f3f4f6', fontSize: 12, fontFamily: 'inherit' },
+                            formatter: function (params) {
+                                let date = '';
+                                let kData = null;
+                                let volData = null;
+                                let ma5 = null, ma20 = null, ma60 = null;
+                                let rsi = null;
+                                const srLines = {};
+
+                                params.forEach(p => {
+                                    date = p.name;
+                                    if (p.seriesName === 'K線') {
+                                        kData = p;
+                                    } else if (p.seriesName === '成交量') {
+                                        volData = p;
+                                    } else if (p.seriesName === 'MA5') {
+                                        ma5 = p;
+                                    } else if (p.seriesName === 'MA20') {
+                                        ma20 = p;
+                                    } else if (p.seriesName === 'MA60') {
+                                        ma60 = p;
+                                    } else if (p.seriesName === 'RSI-14') {
+                                        rsi = p;
+                                    } else {
+                                        const val = typeof p.data === 'object' && p.data !== null ? p.data.value : p.data;
+                                        if (val !== null && val !== undefined && !isNaN(val)) {
+                                            srLines[p.seriesName] = {
+                                                value: parseFloat(val).toFixed(2),
+                                                color: p.color
+                                            };
+                                        }
+                                    }
+                                });
+
+                                let html = `<div style="font-weight:bold; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 6px; margin-bottom: 6px; font-size: 12px;">日期: ${date}</div>`;
+
+                                if (kData) {
+                                    const openVal = kData.data[1];
+                                    const closeVal = kData.data[2];
+                                    const lowVal = kData.data[3];
+                                    const highVal = kData.data[4];
+                                    const isUp = closeVal >= openVal;
+                                    const change = closeVal - openVal;
+                                    const pct = (change / openVal) * 100;
+                                    const color = isUp ? upColor : downColor;
+
+                                    html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-bottom: 6px; font-size: 11px;">
+                                        <span>開盤: <span style="font-weight:600;">${openVal.toFixed(2)}</span></span>
+                                        <span>收盤: <span style="font-weight:600;color:${color}">${closeVal.toFixed(2)}</span></span>
+                                        <span>最低: <span style="font-weight:600;">${lowVal.toFixed(2)}</span></span>
+                                        <span>最高: <span style="font-weight:600;">${highVal.toFixed(2)}</span></span>
+                                        <span style="grid-column: span 2;">漲跌: <span style="font-weight:600;color:${color}">${change >= 0 ? '+' : ''}${change.toFixed(2)} (${change >= 0 ? '+' : ''}${pct.toFixed(2)}%)</span></span>
+                                    </div>`;
+                                }
+
+                                // Moving Averages (MA5, MA20, MA60) row
+                                if (ma5 || ma20 || ma60) {
+                                    html += `<div style="display: flex; gap: 12px; margin-bottom: 6px; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px;">`;
+                                    if (ma5 && ma5.data !== null && ma5.data !== undefined) {
+                                        html += `<span>MA5: <span style="color:${ma5.color}; font-weight:600;">${ma5.data.toFixed(2)}</span></span>`;
+                                    }
+                                    if (ma20 && ma20.data !== null && ma20.data !== undefined) {
+                                        html += `<span>MA20: <span style="color:${ma20.color}; font-weight:600;">${ma20.data.toFixed(2)}</span></span>`;
+                                    }
+                                    if (ma60 && ma60.data !== null && ma60.data !== undefined) {
+                                        html += `<span>MA60: <span style="color:${ma60.color}; font-weight:600;">${ma60.data.toFixed(2)}</span></span>`;
+                                    }
+                                    html += `</div>`;
+                                }
+
+                                // Volume & RSI-14 row
+                                if (volData || rsi) {
+                                    html += `<div style="display: flex; justify-content: space-between; gap: 16px; font-size: 11px; margin-bottom: 6px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px;">`;
+                                    if (volData) {
+                                        const volVal = typeof volData.data === 'object' ? volData.data.value : volData.data;
+                                        html += `<span>成交量: <span style="font-weight:600;">${volVal} 張</span></span>`;
+                                    }
+                                    if (rsi && rsi.data !== null && rsi.data !== undefined) {
+                                        html += `<span>RSI-14: <span style="color:${rsi.color}; font-weight:600;">${rsi.data.toFixed(2)}</span></span>`;
+                                    }
+                                    html += `</div>`;
+                                }
+
+                                // S/R & Trendlines section in 2-column grid
+                                const hasSR = Object.keys(srLines).length > 0;
+                                if (hasSR) {
+                                    html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px; font-size: 10px;">`;
+                                    
+                                    const shortPres = srLines['短期壓力 (5日)'];
+                                    const shortSup = srLines['短期支撐 (5日)'];
+                                    html += `<span>短壓: <span style="font-weight:600; color:${shortPres ? shortPres.color : 'rgba(255,255,255,0.4)'}">${shortPres ? shortPres.value : '-'}</span></span>`;
+                                    html += `<span>短支: <span style="font-weight:600; color:${shortSup ? shortSup.color : 'rgba(255,255,255,0.4)'}">${shortSup ? shortSup.value : '-'}</span></span>`;
+                                    
+                                    const midPres = srLines['中期壓力 (20日)'];
+                                    const midSup = srLines['中期支撐 (20日)'];
+                                    html += `<span>中壓: <span style="font-weight:600; color:${midPres ? midPres.color : 'rgba(255,255,255,0.4)'}">${midPres ? midPres.value : '-'}</span></span>`;
+                                    html += `<span>中支: <span style="font-weight:600; color:${midSup ? midSup.color : 'rgba(255,255,255,0.4)'}">${midSup ? midSup.value : '-'}</span></span>`;
+                                    
+                                    const fallTrend = srLines['下降趨勢線 (壓力)'];
+                                    const riseTrend = srLines['上升趨勢線 (支撐)'];
+                                    html += `<span>下降趨勢: <span style="font-weight:600; color:${fallTrend ? fallTrend.color : '#fff'}">${fallTrend ? fallTrend.value : '-'}</span></span>`;
+                                    html += `<span>上升趨勢: <span style="font-weight:600; color:${riseTrend ? riseTrend.color : '#fff'}">${riseTrend ? riseTrend.value : '-'}</span></span>`;
+                                    
+                                    html += `</div>`;
+                                }
+
+                                return html;
+                            }
+                        },
+                        grid: [
+                            { left: '55px', right: '30px', top: gridTop, height: gridHeight },
+                            { left: '55px', right: '30px', top: '335px', height: '65px' },
+                            { left: '55px', right: '30px', top: '415px', height: '65px' }
+                        ],
+                        xAxis: [
+                            {
+                                type: 'category',
+                                data: dates,
+                                gridIndex: 0,
+                                scale: true,
+                                boundaryGap: true,
+                                axisLine: { onZero: false, lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                                splitLine: { show: false },
+                                axisLabel: { show: false },
+                                axisTick: { show: false }
+                            },
+                            {
+                                type: 'category',
+                                data: dates,
+                                gridIndex: 1,
+                                scale: true,
+                                boundaryGap: true,
+                                axisLine: { onZero: false, lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                                splitLine: { show: false },
+                                axisLabel: { show: false },
+                                axisTick: { show: false }
+                            },
+                            {
+                                type: 'category',
+                                data: dates,
+                                gridIndex: 2,
+                                scale: true,
+                                boundaryGap: true,
+                                axisLine: { onZero: false, lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                                splitLine: { show: false },
+                                axisLabel: { color: '#9ca3af', fontSize: 10 },
+                                axisTick: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
+                            }
+                        ],
+                        yAxis: [
+                            {
+                                scale: true,
+                                gridIndex: 0,
+                                splitArea: { show: false },
+                                splitLine: { show: true, lineStyle: { color: 'rgba(255,255,255,0.05)' } },
+                                axisLabel: { color: '#9ca3af', fontSize: 10 },
+                                min: function (value) {
+                                    let val = value.min;
+                                    const range = value.max - value.min;
+                                    const threshold = range * 0.15;
+                                    allSRAround.forEach(v => {
+                                        if (v < val && v >= value.min - threshold) {
+                                            val = v;
+                                        }
+                                    });
+                                    return Math.floor(val * 0.99);
+                                },
+                                max: function (value) {
+                                    let val = value.max;
+                                    const range = value.max - value.min;
+                                    const threshold = range * 0.15;
+                                    allSRAround.forEach(v => {
+                                        if (v > val && v <= value.max + threshold) {
+                                            val = v;
+                                        }
+                                    });
+                                    return Math.ceil(val * 1.01);
+                                }
+                            },
+                            {
+                                scale: true,
+                                gridIndex: 1,
+                                splitNumber: 2,
+                                axisLabel: { show: false },
+                                axisLine: { show: false },
+                                axisTick: { show: false },
+                                splitLine: { show: false }
+                            },
+                            {
+                                scale: false,
+                                gridIndex: 2,
+                                min: 0,
+                                max: 100,
+                                interval: 20,
+                                splitLine: { show: true, lineStyle: { color: 'rgba(255,255,255,0.05)' } },
+                                axisLabel: { color: '#9ca3af', fontSize: 10 }
+                            }
+                        ],
+                        dataZoom: [
+                            {
+                                type: 'inside',
+                                xAxisIndex: [0, 1, 2],
+                                start: Math.max(0, 100 - Math.round(30 / dates.length * 100)),
+                                end: 100
+                            },
+                            {
+                                show: true,
+                                type: 'slider',
+                                xAxisIndex: [0, 1, 2],
+                                bottom: '0%',
+                                start: Math.max(0, 100 - Math.round(30 / dates.length * 100)),
+                                end: 100,
+                                textStyle: { color: '#9ca3af', fontSize: 9 },
+                                borderColor: 'rgba(255,255,255,0.08)',
+                                height: 20
+                            }
+                        ],
+                        series: [
+                            {
+                                name: 'K線',
+                                type: 'candlestick',
+                                data: candlestickData,
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                itemStyle: {
+                                    color: upColor,
+                                    color0: downColor,
+                                    borderColor: upColor,
+                                    borderColor0: downColor
+                                }
+                            },
+                            {
+                                name: 'MA5',
+                                type: 'line',
+                                data: ma5Data,
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                smooth: true,
+                                showSymbol: false,
+                                lineStyle: { width: 1.5, color: '#06b6d4' },
+                                itemStyle: { color: '#06b6d4' }
+                            },
+                            {
+                                name: 'MA20',
+                                type: 'line',
+                                data: ma20Data,
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                smooth: true,
+                                showSymbol: false,
+                                lineStyle: { width: 1.5, color: '#eab308' },
+                                itemStyle: { color: '#eab308' }
+                            },
+                            {
+                                name: 'MA60',
+                                type: 'line',
+                                data: ma60Data,
+                                xAxisIndex: 0,
+                                yAxisIndex: 0,
+                                smooth: true,
+                                showSymbol: false,
+                                lineStyle: { width: 1.5, color: '#a855f7' },
+                                itemStyle: { color: '#a855f7' }
+                            },
+                            ...extraSeries,
+                            {
+                                name: '成交量',
+                                type: 'bar',
+                                data: volumeData,
+                                xAxisIndex: 1,
+                                yAxisIndex: 1
+                            },
+                            {
+                                name: 'RSI-14',
+                                type: 'line',
+                                data: rsiData,
+                                xAxisIndex: 2,
+                                yAxisIndex: 2,
+                                smooth: true,
+                                showSymbol: false,
+                                lineStyle: { width: 1.5, color: '#f97316' },
+                                itemStyle: { color: '#f97316' },
+                                markLine: {
+                                    symbol: ['none', 'none'],
+                                    data: [
+                                        { yAxis: 30, lineStyle: { color: 'rgba(16, 185, 129, 0.35)', type: 'dashed' }, label: { show: true, position: 'end', formatter: '30' } },
+                                        { yAxis: 70, lineStyle: { color: 'rgba(244, 63, 94, 0.35)', type: 'dashed' }, label: { show: true, position: 'end', formatter: '70' } }
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+
+                    stockChartInstance.setOption(option, true);
+                };
+
+                return {
+                    stockCode,
+                    loading,
+                    error,
+                    showDashboard,
+                    chipToggle,
+                    colorToggle,
+                    linesToggle,
+                    webToggle,
+                    chipLoading,
+                    chipError,
+                    showChipColumns,
+                    activeBasicTab,
+                    strategyOptions,
+                    strategy,
+                    positionKind,
+                    positionCost,
+                    positionLots,
+                    horizon,
+                    promptLoading,
+                    promptSummary,
+                    mainCopyText,
+                    mainCopied,
+                    copyBasicBtnText,
+                    stockData,
+                    historyList,
+                    sortedHistory,
+                    chartCollapsed,
+                    advancedCollapsed,
+                    goodinfoNotice,
+                    goodinfoDetailUrl,
+                    goodinfoChartUrl,
+                    openGoodinfoBoth,
+                    priceChangeClass,
+                    copyText,
+                    copyMainPrompt,
+                    copyBasicPrompt,
+                    getPriceCellClass,
+                    getChipCellClass,
+                    getRelationClass,
+                    getRsiClass,
+                    toggleChart,
+                    removeHistoryItem,
+                    togglePin,
+                    searchFromHistory,
+                    performSearch,
+                    compareMode,
+                    compareSelected,
+                    compareLoading,
+                    compareError,
+                    compareNotice,
+                    comparePrompt,
+                    isCompareSelected,
+                    enterCompareMode,
+                    exitCompareMode,
+                    toggleCompareSelect,
+                    runCompare,
+                    importInput,
+                    exportWatchlist,
+                    triggerImport,
+                    importWatchlist,
+                    // strategy scan
+                    scanMode,
+                    scanSelected,
+                    isScanSelected,
+                    enterScanMode,
+                    exitScanMode,
+                    toggleScanSelect,
+                    selectAllForScan,
+                    scanResults,
+                    scanLoading,
+                    scanError,
+                    scanMeta,
+                    hasScanResults,
+                    runScan,
+                    scanTooltip,
+                    priceDirClass,
+                    shortChange,
+                    // rank card
+                    rankCollapsed,
+                    rankMarket,
+                    rankMetric,
+                    rankSide,
+                    rankDays,
+                    rankExcludeEtf,
+                    rankLoading,
+                    rankError,
+                    rankData,
+                    rankRows,
+                    rankDateLabel,
+                    rankDescription,
+                    toggleRank,
+                    loadRank,
+                    isInWatchlist,
+                    addToWatchlist,
+                    rankView,
+                    sectorSort,
+                    sectorLoading,
+                    sectorError,
+                    sectorData,
+                    sectorRows,
+                    sectorDateLabel,
+                    sectorDescription,
+                    loadSector,
+                    volumeMarket,
+                    volumeMetric,
+                    volumeMinVolume,
+                    volumeLoading,
+                    volumeError,
+                    volumeData,
+                    volumeRows,
+                    volumeDateLabel,
+                    volumeDescription,
+                    loadVolume,
+                    groupKind,
+                    groupMarket,
+                    groupSort,
+                    groupLoading,
+                    groupError,
+                    groupData,
+                    groupRows,
+                    groupSelected,
+                    groupSelectedData,
+                    groupSelectedIndex,
+                    selectGroupKind,
+                    groupDateLabel,
+                    groupDescription,
+                    loadGroup,
+                    volumeKind,
+                    volumeGroup,
+                    volumeGroupOptions,
+                    volumeGroupLoading,
+                    selectVolumeKind,
+                    rankTitle,
+                    rankHeaderLabel,
+                    // decision log
+                    decisionLog,
+                    logCollapsed,
+                    logFormOpen,
+                    logImportInput,
+                    logActionOptions,
+                    logDraft,
+                    recentLog,
+                    logStats,
+                    currentLogCount,
+                    logCountFor,
+                    strategyLabel,
+                    actionLabel,
+                    reviewLabel,
+                    openLogForm,
+                    saveLogEntry,
+                    removeLogEntry,
+                    cycleReview,
+                    exportLog,
+                    triggerLogImport,
+                    importLog
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+{% endraw %}
+
+</html>

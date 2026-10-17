@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    env_file: .env
+    ports:
+      - "5000:7860"
+      - "7860:7860"
+    volumes:
+      - stock_cache:/tmp/stock_data_cache
+    restart: unless-stopped
+
+volumes:
+  stock_cache:
