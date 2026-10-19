@@ -1,3 +1,13 @@
+---
+title: Shioaji Api
+emoji: 📈
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 即時數據抓取與 AI 提示詞生成工具
 
 這是一個基於 Python 與 Docker 的股票數據工具。台股行情透過 **永豐金證券 Shioaji API** 取得，籌碼與五檔則取自官方公開資料：
@@ -31,14 +41,14 @@ SHIOAJI_SIMULATION=true
 
 ## 專案檔案
 
-| 檔案 | 用途 |
-| --- | --- |
-| `app.py` | 主程式：Flask 網頁服務 + CLI，分析、提示詞、排行 |
-| `sj_market.py` | 永豐 Shioaji 封裝：登入、快照、日 K、全市場快照與快取 |
-| `templates/index.html` | 前端畫面 |
-| `login.py` | 工具腳本：測試登入、列出帳戶 |
-| `account.py` | 工具腳本：查餘額、持股、交割款、委託（正式環境需 `signed=true`） |
-| `docker-compose.yml` | 一鍵啟動網頁服務（含日 K / 行情快取 volume） |
+| 檔案                   | 用途                                                             |
+| ---------------------- | ---------------------------------------------------------------- |
+| `app.py`               | 主程式：Flask 網頁服務 + CLI，分析、提示詞、排行                 |
+| `sj_market.py`         | 永豐 Shioaji 封裝：登入、快照、日 K、全市場快照與快取            |
+| `templates/index.html` | 前端畫面                                                         |
+| `login.py`             | 工具腳本：測試登入、列出帳戶                                     |
+| `account.py`           | 工具腳本：查餘額、持股、交割款、委託（正式環境需 `signed=true`） |
+| `docker-compose.yml`   | 一鍵啟動網頁服務（含日 K / 行情快取 volume）                     |
 
 ---
 
