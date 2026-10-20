@@ -33,6 +33,7 @@ os.makedirs(CACHE_DIR_DAILY, exist_ok=True)
 
 SNAPSHOT_TTL = 15            # 秒；個股快照的記憶體快取
 MARKET_SNAPSHOT_TTL = 60     # 秒；全市場快照的記憶體快取
+POSITION_TTL = 60            # 秒；證券帳戶庫存的記憶體快取
 META_TTL = 6 * 3600          # 秒；商品檔（名稱、昨收、交易所）
 CODES_TTL = 24 * 3600        # 秒；全市場股票代碼清單
 SNAPSHOT_BATCH = 500         # snapshots 單次上限
@@ -56,6 +57,7 @@ _meta_cache = {}        # code -> (ts, meta dict | None)
 _snapshot_cache = {}    # code -> (ts, Snapshot)
 _market_cache = {"ts": 0.0, "snapshots": None}
 _codes_cache = {"ts": 0.0, "codes": None}
+_position_cache = {"ts": 0.0, "positions": None}  # code -> {cost, shares, lots}
 _daily_locks = {}
 
 
@@ -109,6 +111,62 @@ def logout():
         except Exception:
             pass
         _api = None
+
+
+def _lots_from_shares(shares):
+    return round(float(shares) / 1000, 3)
+
+
+def _fetch_positions(api):
+    """以股為單位讀證券帳戶庫存。未簽署時回傳空表，不視為錯誤。"""
+    account = getattr(api, "stock_account", None)
+    if account is None or not getattr(account, "signed", False):
+        return {}
+    positions = api.list_positions(account, unit=sj.Unit.Share) or []
+    result = {}
+    for pos in positions:
+        code = str(getattr(pos, "code", "") or "").strip().upper()
+        try:
+            shares = int(getattr(pos, "quantity", 0) or 0)
+        except (TypeError, ValueError):
+            shares = 0
+        if not code or shares <= 0:
+            continue
+        try:
+            cost = float(getattr(pos, "price", 0) or 0)
+        except (TypeError, ValueError):
+            cost = 0.0
+        result[code] = {
+            "cost": cost,
+            "shares": shares,
+            "lots": _lots_from_shares(shares),
+        }
+    return result
+
+
+def get_holdings():
+    """回傳 {code: {cost, shares, lots}}。登入或查詢失敗時回傳空表，不拋出。"""
+    now = time.time()
+    with _lock:
+        cached = _position_cache["positions"]
+        if cached is not None and now - _position_cache["ts"] < POSITION_TTL:
+            return {code: dict(item) for code, item in cached.items()}
+    try:
+        positions = _call(_fetch_positions)
+    except Exception:
+        return {}
+    with _lock:
+        _position_cache["positions"] = positions
+        _position_cache["ts"] = time.time()
+    return {code: dict(item) for code, item in positions.items()}
+
+
+def get_holding(code):
+    """單一代碼的庫存；沒有則回傳 None。"""
+    code = str(code or "").strip().upper()
+    if not code:
+        return None
+    return get_holdings().get(code)
 
 
 def _call(fn, *args, **kwargs):

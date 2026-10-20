@@ -2560,7 +2560,13 @@ def api_analyze():
     res["prompt"] = _build_prompt_for(res, opts)
     res["basic_prompt"] = format_basic_prompt(res)
     res["prompt_options"] = opts
+    res["holding"] = sj_market.get_holding(res.get("stock_code")) if res.get("is_taiwan_stock") else None
     return jsonify(res)
+
+
+@app_web.route('/api/holdings')
+def api_holdings():
+    return jsonify({"success": True, "holdings": sj_market.get_holdings()})
 
 
 @app_web.route('/api/chip')

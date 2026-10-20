@@ -645,6 +645,20 @@
             background: rgba(6, 182, 212, 0.08);
         }
 
+        .history-tag.held {
+            border-color: rgba(16, 185, 129, 0.7);
+            background: rgba(16, 185, 129, 0.12);
+        }
+
+        .held-badge {
+            font-size: 0.72rem;
+            line-height: 1.4;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
         .history-tag.selectable {
             cursor: pointer;
         }
@@ -1102,9 +1116,10 @@
                 <span class="history-title">{{ compareMode ? '勾選要比較的股票（至少 2 支）：' : (scanMode ? '勾選要掃描的股票：' : '自選股：') }}</span>
                 <div style="display: inline-flex; flex-wrap: wrap; gap: 8px;">
                     <div v-for="item in sortedHistory" :key="item.code" class="history-tag"
-                        :class="{ pinned: item.pinned && !compareMode && !scanMode, selectable: compareMode || scanMode, selected: (compareMode && isCompareSelected(item.code)) || (scanMode && isScanSelected(item.code)) }"
+                        :class="{ pinned: item.pinned && !compareMode && !scanMode, held: !!holdingFor(item.code), selectable: compareMode || scanMode, selected: (compareMode && isCompareSelected(item.code)) || (scanMode && isScanSelected(item.code)) }"
                         @click="compareMode ? toggleCompareSelect(item.code) : (scanMode && toggleScanSelect(item.code))">
                         <template v-if="compareMode || scanMode">
+                            <span v-if="holdingFor(item.code)" class="held-badge" :title="holdingTitle(item.code)">持</span>
                             <span class="history-tag-text">{{ item.name || item.code }}</span>
                         </template>
                         <template v-else>
@@ -1116,6 +1131,7 @@
                                 :title="scanTooltip(item.code)"></span>
                             <span v-else-if="scanResults[item.code]" class="scan-dot na"
                                 :title="scanTooltip(item.code)"></span>
+                            <span v-if="holdingFor(item.code)" class="held-badge" :title="holdingTitle(item.code)">持</span>
                             <span class="history-tag-text" :title="scanTooltip(item.code)"
                                 @click="searchFromHistory(item.code)">{{ item.name || item.code }}</span>
                             <span v-if="scanResults[item.code]" class="history-tag-price"
@@ -1191,7 +1207,7 @@
                 </div>
                 <div class="strategy-field" v-show="positionKind === 'holding'">
                     <span class="strategy-label">張數</span>
-                    <input class="strategy-input" type="number" min="0" step="1" v-model="positionLots"
+                    <input class="strategy-input" type="number" min="0" step="0.001" v-model="positionLots"
                         placeholder="例如 2">
                 </div>
                 <div class="strategy-field">
@@ -2061,6 +2077,7 @@
 
                 const stockData = ref(null);
                 const historyList = ref([]);
+                const holdings = ref({});
                 const chartCollapsed = ref(true);
                 const advancedCollapsed = ref(false);
                 const goodinfoNotice = ref('');
@@ -2159,6 +2176,37 @@
                         lots: kind === 'holding' ? lots : ''
                     };
                     persistPositions(map);
+                };
+
+                const holdingFor = (code) => holdings.value[String(code || '').toUpperCase()] || null;
+
+                const holdingTitle = (code) => {
+                    const held = holdingFor(code);
+                    if (!held) return '';
+                    const lots = held.lots ?? '';
+                    const cost = held.cost ?? '';
+                    return `持有 ${lots} 張，成本 ${cost}`;
+                };
+
+                const rememberHolding = (code, holding) => {
+                    const upper = String(code || '').toUpperCase();
+                    if (!upper) return;
+                    const next = { ...holdings.value };
+                    if (holding) next[upper] = holding;
+                    else delete next[upper];
+                    holdings.value = next;
+                };
+
+                const loadHoldings = async () => {
+                    try {
+                        const response = await fetch('/api/holdings');
+                        const data = await response.json();
+                        if (data.success && data.holdings && typeof data.holdings === 'object') {
+                            holdings.value = data.holdings;
+                        }
+                    } catch (e) {
+                        holdings.value = {};
+                    }
                 };
 
                 const loadPosition = (code) => {
@@ -2271,7 +2319,23 @@
                         delete chipCache[data.stock_code];
 
                         stockData.value = data;
-                        loadPosition(data.stock_code);
+                        if (data.is_taiwan_stock && data.holding) {
+                            applyingPosition = true;
+                            positionKind.value = 'holding';
+                            positionCost.value = data.holding.cost == null ? '' : String(data.holding.cost);
+                            positionLots.value = data.holding.lots == null ? '' : String(data.holding.lots);
+                            strategy.value = 'risk_check';
+                            rememberHolding(data.stock_code, data.holding);
+                            nextTick(() => {
+                                applyingPosition = false;
+                                savePosition(data.stock_code);
+                                refreshPrompt();
+                            });
+                        } else {
+                            if (data.is_taiwan_stock) rememberHolding(data.stock_code, null);
+                            strategy.value = 'general';
+                            loadPosition(data.stock_code);
+                        }
                         showDashboard.value = true;
 
                         // Always collapse chart initially on new search
@@ -3366,6 +3430,7 @@
 
                     // Initial history
                     historyList.value = getHistory();
+                    loadHoldings();
                     decisionLog.value = getLog();
                     logCollapsed.value = localStorage.getItem('log_collapsed') !== 'false';
 
@@ -3956,6 +4021,8 @@
                     stockData,
                     historyList,
                     sortedHistory,
+                    holdingFor,
+                    holdingTitle,
                     chartCollapsed,
                     advancedCollapsed,
                     goodinfoNotice,
